@@ -9,7 +9,7 @@ import { ArtifactWindow } from "@/components/artifact-window"
 import { UserMenu } from "@/components/auth/user-menu"
 import { Button } from "@/components/ui/button"
 import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
-import { Toaster, toast } from "sonner"
+import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
 import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
 
@@ -200,7 +200,6 @@ export default function ChatPage() {
 
   return (
     <>
-      <Toaster richColors position="top-right" />
       <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">
         {sidebarOpen && (
           <div

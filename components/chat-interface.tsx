@@ -24,12 +24,12 @@ interface ChatInterfaceProps {
 const quickPrompts = [
   {
     title: "Discover data",
-    prompt: "Help me discover and explore data assets across WMA Data Platform",
+    prompt: "Help me discover and explore data assets across Data Platform",
     icon: <FileText className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
     title: "Write code",
-    prompt: "Write code to integrate with WMA Data Platform APIs and services",
+    prompt: "Write code to integrate with Data Platform APIs and services",
     icon: <Code className="w-4 h-4 mr-2 text-red-500" />,
   },
   {

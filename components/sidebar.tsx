@@ -56,7 +56,7 @@ export function Sidebar({
           onClick={onNewChat}
           className="w-full justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
         >
-          <PlusCircle className="w-5 h-5 text-accent" />
+          <PlusCircle className="w-5 h-5 text-red-500" />
           New Chat
         </Button>
       </div>
