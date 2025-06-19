@@ -110,7 +110,7 @@ function getArtifactType(language: string): ArtifactContent["type"] {
   const diagramLanguages = ["mermaid", "dot", "plantuml"]
   const dataLanguages = ["json", "csv", "xml", "yaml", "toml"]
   const webLanguages = ["html", "svg"]
-  const chartLanguages = ["chart"]
+  const chartLanguages = ["chart", "pie", "bar", "line", "area", "scatter", "radar", "composed", "treemap", "funnel", "heatmap", "donut"]
   const tableLanguages = ["table", "tabular"]
 
   if (tableLanguages.includes(langLower)) return "table"
