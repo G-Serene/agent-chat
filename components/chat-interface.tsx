@@ -59,7 +59,7 @@ export function ChatInterface({
     (messages.length === 1 &&
       messages[0].role !== "assistant" &&
       messages[0].content !==
-        "Hello! I'm your AI Agent assistant. I can help you with code, analysis, diagrams, and various tasks. What would you like to work on today?")
+        "What would you like to work on today?")
 
   const handlePromptClick = (prompt: string) => {
     const syntheticEvent = {
@@ -90,8 +90,7 @@ export function ChatInterface({
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">Welcome to Agent Chat!</h2>
               <p className="text-muted-foreground mb-8 max-w-md text-lg">
-                I'm your AI agent assistant. I can help with code, analysis, diagrams, and much more. What would you
-                like to explore?
+                What would you like to explore?
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
                 {quickPrompts.map((item) => (

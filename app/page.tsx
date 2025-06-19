@@ -23,18 +23,7 @@ export default function ChatPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
 
-  // Define initial messages structure using a memoized function based on session ID
-  const getInitialMessagesForSession = useCallback(
-    (sessionId: string): Message[] => [
-      {
-        id: `initial-message-${sessionId || Date.now()}`,
-        role: "assistant" as const,
-        content:
-          "Hello! I'm your AI Agent assistant. I can help you with code, analysis, diagrams, and various tasks. What would you like to work on today?",
-      },
-    ],
-    [],
-  )
+
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
@@ -43,7 +32,7 @@ export default function ChatPage() {
     body: {
       session_id: currentSessionId,
     },
-    initialMessages: currentSessionId ? getInitialMessagesForSession(currentSessionId) : [],
+    initialMessages: [],
     onError: (err) => {
       console.error("❌ Chat error:", err)
       toast.error("An error occurred", { description: err.message })
@@ -96,25 +85,19 @@ export default function ChatPage() {
         setMessages(session.messages)
       } else {
         console.log("🆕 Initializing new or empty session:", currentSessionId)
-        setMessages(getInitialMessagesForSession(currentSessionId))
+        setMessages([])
       }
       ChatStorage.setCurrentSessionId(currentSessionId)
     }
-  }, [currentSessionId, chatComponentKey, setMessages, getInitialMessagesForSession])
+  }, [currentSessionId, chatComponentKey, setMessages])
 
   // Save messages to storage
   useEffect(() => {
     if (currentSessionId && messages && messages.length > 0) {
-      const isOnlyInitialPlaceholder = messages.length === 1 && messages[0].id.startsWith("initial-message-")
-      if (
-        !isOnlyInitialPlaceholder ||
-        messages[0].content !== getInitialMessagesForSession(currentSessionId)[0].content
-      ) {
-        ChatStorage.saveSession(currentSessionId, messages)
-        setChatSessions(ChatStorage.getSessionSummaries())
-      }
+      ChatStorage.saveSession(currentSessionId, messages)
+      setChatSessions(ChatStorage.getSessionSummaries())
     }
-  }, [messages, currentSessionId, getInitialMessagesForSession])
+  }, [messages, currentSessionId])
 
   // Calculate default artifact window width
   useEffect(() => {
