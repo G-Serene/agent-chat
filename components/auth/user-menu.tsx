@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 import { SignInButton } from "./sign-in-button"
 import { SignOutButton } from "./sign-out-button"
 import { User, Settings } from "lucide-react"
@@ -54,14 +53,6 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">
               {session.user?.email}
             </p>
-            <div className="flex gap-1 pt-1">
-              <Badge variant={session.environment === "development" ? "secondary" : "default"} className="text-xs">
-                {session.environment}
-              </Badge>
-              <Badge variant={session.ssoEnabled ? "default" : "secondary"} className="text-xs">
-                {session.ssoEnabled ? "SSO" : "DEV"}
-              </Badge>
-            </div>
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

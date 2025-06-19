@@ -93,14 +93,9 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub
       }
       
-      // Add environment info to session
-      session.environment = isDevelopment ? "development" : "production"
-      session.ssoEnabled = !isDevelopment
-      
       if (isDevelopment) {
         console.log("🔧 Development session created:", {
           user: session.user?.name,
-          environment: session.environment,
         })
       }
       
