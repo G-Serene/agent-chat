@@ -47,7 +47,7 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
    \`\`\`
    
    Update the environment variables:
-   \`\`\`env
+   ```env
    # Backend Configuration
    NEXT_PUBLIC_BACKEND_URL=http://localhost:8501
    BACKEND_URL=http://localhost:8501
@@ -62,10 +62,18 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
    AUTH_AZURE_AD_CLIENT_SECRET=your-azure-client-secret
    AUTH_AZURE_AD_TENANT_ID=your-azure-tenant-id
    
+   # Azure OpenAI Configuration (Optional)
+   # When API key is provided, it will be used for authentication
+   # When API key is not provided, Azure AD authentication will be used
+   AZURE_OPENAI_ENDPOINT=https://your-azure-openai-resource.openai.azure.com/
+   AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+   AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+   AZURE_OPENAI_API_VERSION=2024-10-21
+   
    # For production, change to your actual backend URL:
    # NEXT_PUBLIC_BACKEND_URL=https://your-backend-domain.com
    # BACKEND_URL=https://your-backend-domain.com
-   \`\`\`
+   ```
 
 4. **Start the development server**
    \`\`\`bash
@@ -156,14 +164,18 @@ data: [DONE]
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| \`NEXT_PUBLIC_BACKEND_URL\` | Public backend URL (client-side) | \`http://localhost:8501\` |
-| \`BACKEND_URL\` | Backend URL (server-side) | \`http://localhost:8501\` |
-| \`NEXTAUTH_URL\` | Your application URL | \`http://localhost:3000\` |
-| \`NEXTAUTH_SECRET\` | Secret key for JWT encryption | Required |
-| \`NODE_ENV\` | Environment mode | \`development\` |
-| \`AUTH_AZURE_AD_CLIENT_ID\` | Azure App Registration Client ID | Production only |
-| \`AUTH_AZURE_AD_CLIENT_SECRET\` | Azure App Registration Client Secret | Production only |
-| \`AUTH_AZURE_AD_TENANT_ID\` | Azure Tenant ID | Production only |
+| `NEXT_PUBLIC_BACKEND_URL` | Public backend URL (client-side) | `http://localhost:8501` |
+| `BACKEND_URL` | Backend URL (server-side) | `http://localhost:8501` |
+| `NEXTAUTH_URL` | Your application URL | `http://localhost:3000` |
+| `NEXTAUTH_SECRET` | Secret key for JWT encryption | Required |
+| `NODE_ENV` | Environment mode | `development` |
+| `AUTH_AZURE_AD_CLIENT_ID` | Azure App Registration Client ID | Production only |
+| `AUTH_AZURE_AD_CLIENT_SECRET` | Azure App Registration Client Secret | Production only |
+| `AUTH_AZURE_AD_TENANT_ID` | Azure Tenant ID | Production only |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint URL | Optional |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key (if not provided, Azure AD will be used) | Optional |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Azure OpenAI model deployment name | Required if endpoint configured |
+| `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version | `2024-10-21` |
 
 ## 🔐 Authentication
 

@@ -44,8 +44,8 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'initialize':
-        const azureConfig = params.azureOpenAI
-        await mcpClientManager.initialize(azureConfig)
+        // Azure OpenAI config now comes from environment variables
+        await mcpClientManager.initialize()
         return NextResponse.json({ success: true, message: 'MCP client initialized' })
 
       case 'executeTool':
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       case 'refreshConnections':
         // Disconnect and reconnect to refresh server connections
         await mcpClientManager.disconnect()
-        await mcpClientManager.initialize(params.azureOpenAI)
+        await mcpClientManager.initialize()
         return NextResponse.json({ success: true, message: 'Connections refreshed' })
 
       default:

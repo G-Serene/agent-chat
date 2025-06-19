@@ -17,6 +17,7 @@ import {
 import { mcpConfigManager } from './config';
 import { createStreamableHTTPTransport } from './transport';
 import { AzureOpenAIService, ChatCompletionOptions } from './azure-openai';
+import { loadAzureOpenAIConfig } from './azure-config';
 
 export class MCPClientManager {
   private clients: Map<string, Client> = new Map();
@@ -27,17 +28,20 @@ export class MCPClientManager {
   /**
    * Initialize MCP client manager
    */
-  async initialize(azureOpenAIConfig?: any): Promise<void> {
+  async initialize(): Promise<void> {
     try {
       // Load MCP configuration
       this.config = await mcpConfigManager.loadConfig();
       console.log('📄 MCP configuration loaded');
 
-      // Initialize Azure OpenAI if configured
-      if (azureOpenAIConfig) {
-        this.azureOpenAI = new AzureOpenAIService(azureOpenAIConfig);
+      // Initialize Azure OpenAI from environment variables
+      const azureConfig = loadAzureOpenAIConfig();
+      if (azureConfig) {
+        this.azureOpenAI = new AzureOpenAIService(azureConfig);
         await this.azureOpenAI.initialize();
-        console.log('🔧 Azure OpenAI service initialized');
+        console.log('🔧 Azure OpenAI service initialized from environment variables');
+      } else {
+        console.log('ℹ️ Azure OpenAI not configured - skipping initialization');
       }
 
       // Initialize MCP servers

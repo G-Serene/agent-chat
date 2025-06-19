@@ -23,7 +23,7 @@ interface MCPContextType {
   error: string | null
 
   // Actions
-  initialize: (azureOpenAIConfig?: any) => Promise<void>
+  initialize: () => Promise<void>
   refreshConnections: () => Promise<void>
   executeTool: (toolName: string, args: Record<string, any>) => Promise<any>
   setSelectedTools: (tools: string[]) => void
@@ -127,7 +127,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
   }, [])
 
   // Initialize MCP client
-  const initialize = useCallback(async (azureOpenAIConfig?: any) => {
+  const initialize = useCallback(async () => {
     setIsLoading(true)
     setError(null)
     
@@ -138,8 +138,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          action: 'initialize',
-          azureOpenAI: azureOpenAIConfig
+          action: 'initialize'
         })
       })
 

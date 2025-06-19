@@ -1,23 +1,9 @@
 {
   "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/typescript-sdk/main/src/schemas/mcp.schema.json",
-  "inputs": [
-    {
-      "type": "promptString",
-      "id": "azure-openai-endpoint",
-      "description": "Azure OpenAI Endpoint URL",
-      "password": false
-    },
-    {
-      "type": "promptString", 
-      "id": "azure-openai-key",
-      "description": "Azure OpenAI API Key",
-      "password": true
-    }
-  ],
   "servers": {
     "dataAgent": {
-      "type": "sse",
-      "url": "http://localhost:8501/mcp",
+      "type": "http",
+      "url": "http://localhost:8080/mcp",
       "description": "Local data agent backend with AI capabilities",
       "headers": {
         "Content-Type": "application/json"
