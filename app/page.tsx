@@ -7,6 +7,7 @@ import { ChatInterface } from "@/components/chat-interface"
 import { Sidebar } from "@/components/sidebar"
 import { ArtifactWindow } from "@/components/artifact-window"
 import { UserMenu } from "@/components/auth/user-menu"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
@@ -260,9 +261,15 @@ export default function ChatPage() {
               >
                 {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </Button>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
-                Agent Chat
-              </h1>
+              <Logo 
+                src="/data-flow-logo.svg"
+                srcDark="/data-flow-logo-dark.svg"
+                alt="DataFlow Logo"
+                width={160}
+                height={32}
+                fallbackText="Agent Chat"
+                className="min-w-0 flex-1"
+              />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
               <UserMenu currentSessionId={currentSessionId} />

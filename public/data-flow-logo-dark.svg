@@ -1,0 +1,35 @@
+<svg width="160" height="32" viewBox="0 0 160 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- DataFlow corporate logo - Dark theme -->
+  <defs>
+    <linearGradient id="gradDark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f8fafc;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Compact square logo section with border for dark theme -->
+  <rect x="0" y="0" width="32" height="32" rx="2" fill="url(#gradDark)" stroke="#e2e8f0" stroke-width="1"/>
+  
+  <!-- Simple geometric icon - data/network theme -->
+  <g transform="translate(8, 8)">
+    <!-- Three connected nodes representing data flow -->
+    <circle cx="4" cy="4" r="2" fill="#dc2626"/>
+    <circle cx="12" cy="4" r="2" fill="#dc2626"/>
+    <circle cx="8" cy="12" r="2" fill="#dc2626"/>
+    
+    <!-- Connection lines -->
+    <line x1="6" y1="4" x2="10" y2="4" stroke="#dc2626" stroke-width="1.5"/>
+    <line x1="6" y1="6" x2="6" y2="10" stroke="#dc2626" stroke-width="1.5"/>
+    <line x1="10" y1="6" x2="10" y2="10" stroke="#dc2626" stroke-width="1.5"/>
+  </g>
+  
+  <!-- Company name with clean typography -->
+  <text x="44" y="14" font-family="Arial, Helvetica, sans-serif" font-size="14" font-weight="700" fill="#ffffff" letter-spacing="-0.5px">
+    DataFlow
+  </text>
+  
+  <!-- Subtitle/tagline -->
+  <text x="44" y="25" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="400" fill="#94a3b8" letter-spacing="0.2px">
+    AI Analytics Platform
+  </text>
+</svg>
