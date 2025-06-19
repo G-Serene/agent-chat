@@ -6,6 +6,37 @@
 import { AzureOpenAI } from 'openai';
 import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity';
 import { AzureOpenAIConfig } from '../mcp/types';
+import { z } from 'zod';
+
+// Zod schemas for validation
+const llmMessageSchema = z.object({
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string()
+});
+
+const llmToolSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  parameters: z.object({
+    type: z.literal('object'),
+    properties: z.record(z.any()),
+    required: z.array(z.string()).optional()
+  })
+});
+
+const llmToolCallSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  arguments: z.record(z.any())
+});
+
+const llmChatOptionsSchema = z.object({
+  messages: z.array(llmMessageSchema).min(1),
+  tools: z.array(llmToolSchema).optional(),
+  maxTokens: z.number().positive().optional(),
+  temperature: z.number().min(0).max(2).optional(),
+  stream: z.boolean().optional()
+});
 
 export interface LLMMessage {
   role: 'user' | 'assistant' | 'system';
@@ -47,6 +78,13 @@ export interface LLMChatResponse {
   };
 }
 
+class LLMValidationError extends Error {
+  constructor(message: string, public details?: any) {
+    super(message)
+    this.name = 'LLMValidationError'
+  }
+}
+
 export class AzureOpenAIClient {
   private client: AzureOpenAI | null = null;
   private config: AzureOpenAIConfig;
@@ -69,7 +107,7 @@ export class AzureOpenAIClient {
         this.client = new AzureOpenAI({
           azureADTokenProvider,
           deployment: this.config.deploymentName,
-          apiVersion: this.config.apiVersion || '2024-10-21'
+          apiVersion: this.config.apiVersion || '2025-01-01-preview'
         });
       } else if (this.config.apiKey) {
         // Use API key authentication
@@ -77,7 +115,7 @@ export class AzureOpenAIClient {
           apiKey: this.config.apiKey,
           endpoint: this.config.endpoint,
           deployment: this.config.deploymentName,
-          apiVersion: this.config.apiVersion || '2024-10-21'
+          apiVersion: this.config.apiVersion || '2025-01-01-preview'
         });
       } else {
         throw new Error('Either Azure AD authentication or API key must be configured');
@@ -95,20 +133,23 @@ export class AzureOpenAIClient {
    */
   async createChatCompletion(options: LLMChatOptions): Promise<LLMChatResponse> {
     if (!this.client) {
-      throw new Error('Azure OpenAI client not initialized');
+      throw new LLMValidationError('Azure OpenAI client not initialized');
     }
 
     try {
-      const messages = this.formatMessages(options.messages);
-      const tools = options.tools ? this.formatTools(options.tools) : undefined;
+      // Validate options with Zod
+      const validatedOptions = llmChatOptionsSchema.parse(options);
+      
+      const messages = this.formatMessages(validatedOptions.messages);
+      const tools = validatedOptions.tools ? this.formatTools(validatedOptions.tools) : undefined;
 
       const response = await this.client.chat.completions.create({
-        model: '', // Model is specified by deployment
+        model: this.config.deploymentName,
         messages,
         tools,
         tool_choice: tools ? 'auto' : undefined,
-        max_tokens: options.maxTokens || 2000,
-        temperature: options.temperature || 0.7,
+        max_tokens: validatedOptions.maxTokens || 2000,
+        temperature: validatedOptions.temperature || 0.7,
         stream: false
       });
 
@@ -138,25 +179,28 @@ export class AzureOpenAIClient {
    */
   async *createStreamingChatCompletion(options: LLMChatOptions): AsyncGenerator<LLMChatResponse, void, unknown> {
     if (!this.client) {
-      throw new Error('Azure OpenAI client not initialized');
+      throw new LLMValidationError('Azure OpenAI client not initialized');
     }
 
     try {
-      const messages = this.formatMessages(options.messages);
-      const tools = options.tools ? this.formatTools(options.tools) : undefined;
+      // Validate options with Zod
+      const validatedOptions = llmChatOptionsSchema.parse(options);
+      
+      const messages = this.formatMessages(validatedOptions.messages);
+      const tools = validatedOptions.tools ? this.formatTools(validatedOptions.tools) : undefined;
 
       const stream = await this.client.chat.completions.create({
-        model: '', // Model is specified by deployment
+        model: this.config.deploymentName,
         messages,
         tools,
         tool_choice: tools ? 'auto' : undefined,
-        max_tokens: options.maxTokens || 2000,
-        temperature: options.temperature || 0.7,
+        max_tokens: validatedOptions.maxTokens || 2000,
+        temperature: validatedOptions.temperature || 0.7,
         stream: true
       });
 
-      let accumulatedToolCalls: LLMToolCall[] = [];
-      let accumulatedContent = '';
+      // Accumulator for tool calls across chunks
+      const accumulatedToolCalls: { [index: number]: { id: string; function: { name: string; arguments: string } } } = {};
 
       for await (const chunk of stream) {
         const choice = chunk.choices[0];
@@ -167,29 +211,55 @@ export class AzureOpenAIClient {
 
         // Handle content chunks
         if (delta.content) {
-          accumulatedContent += delta.content;
           yield {
             content: delta.content
           } as LLMChatResponse;
         }
 
-        // Handle tool call chunks
-        if (delta.tool_calls) {
-          const newToolCalls = this.parseToolCalls(delta.tool_calls);
-          accumulatedToolCalls.push(...newToolCalls);
+        // Handle tool calls - accumulate them as they stream in
+        if (delta.tool_calls && delta.tool_calls.length > 0) {
+          for (const toolCall of delta.tool_calls) {
+            if (toolCall.index !== undefined) {
+              const index = toolCall.index;
+              
+              // Initialize tool call accumulator if needed
+              if (!accumulatedToolCalls[index]) {
+                accumulatedToolCalls[index] = {
+                  id: '',
+                  function: { name: '', arguments: '' }
+                };
+              }
+              
+              // Accumulate the tool call data
+              if (toolCall.id) {
+                accumulatedToolCalls[index].id = toolCall.id;
+              }
+              if (toolCall.function?.name) {
+                accumulatedToolCalls[index].function.name = toolCall.function.name;
+              }
+              if (toolCall.function?.arguments) {
+                accumulatedToolCalls[index].function.arguments += toolCall.function.arguments;
+              }
+            }
+          }
         }
 
         // Handle finish reason
         if (choice.finish_reason) {
-          const response: LLMChatResponse = {
-            finishReason: this.mapFinishReason(choice.finish_reason)
-          };
-
-          if (accumulatedToolCalls.length > 0) {
-            response.toolCalls = accumulatedToolCalls;
+          // If we have accumulated tool calls, yield them before finish reason
+          if (Object.keys(accumulatedToolCalls).length > 0) {
+            const toolCallsArray = Object.values(accumulatedToolCalls);
+            const parsedToolCalls = this.parseToolCalls(toolCallsArray);
+            if (parsedToolCalls.length > 0) {
+              yield {
+                toolCalls: parsedToolCalls
+              } as LLMChatResponse;
+            }
           }
-
-          yield response;
+          
+          yield {
+            finishReason: this.mapFinishReason(choice.finish_reason)
+          } as LLMChatResponse;
           break;
         }
       }
@@ -231,14 +301,36 @@ export class AzureOpenAIClient {
   }
 
   /**
-   * Parse tool calls from Azure OpenAI response
+   * Parse tool calls from Azure OpenAI response with validation
    */
   private parseToolCalls(toolCalls: any[]): LLMToolCall[] {
-    return toolCalls.map(tc => ({
-      id: tc.id,
-      name: tc.function?.name || '',
-      arguments: tc.function?.arguments ? JSON.parse(tc.function.arguments) : {}
-    }));
+    return toolCalls.map(tc => {
+      try {
+        // Parse arguments - with 2025-01-01-preview, arguments are more reliable
+        const parsedArguments = tc.function?.arguments 
+          ? (typeof tc.function.arguments === 'string' 
+             ? JSON.parse(tc.function.arguments) 
+             : tc.function.arguments)
+          : {};
+        
+        const toolCall = {
+          id: tc.id || '',
+          name: tc.function?.name || '',
+          arguments: parsedArguments
+        };
+        
+        // Validate with Zod
+        return llmToolCallSchema.parse(toolCall);
+      } catch (error) {
+        console.error('❌ Invalid tool call data:', error, tc);
+        // Return a safe fallback
+        return {
+          id: tc.id || 'unknown',
+          name: tc.function?.name || 'unknown',
+          arguments: {}
+        };
+      }
+    }).filter(tc => tc.name && tc.name !== 'unknown'); // Filter out invalid tool calls
   }
 
   /**

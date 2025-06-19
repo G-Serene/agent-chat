@@ -107,11 +107,9 @@ export async function POST(req: NextRequest) {
 function createErrorStream(message: string, status: number = 400): Response {
   const errorStream = new ReadableStream({
     start(controller) {
-      const escapedError = message.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-      const chunk = `0:"❌ ${escapedError}"\n`
-      controller.enqueue(new TextEncoder().encode(chunk))
-      const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-      controller.enqueue(new TextEncoder().encode(finishChunk))
+      const encoder = new TextEncoder()
+      const errorChunk = `0:"❌ ${message}"\n`
+      controller.enqueue(encoder.encode(errorChunk))
       controller.close()
     },
   })
@@ -152,16 +150,125 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
     }
   }))
 
+  console.log('🔧 LLM Tools being passed to Azure OpenAI:', JSON.stringify(llmTools, null, 2))
+
+  // Validate that ask_database tool has proper schema
+  const askDbTool = llmTools.find(t => t.name === 'ask_database');
+  if (askDbTool) {
+    console.log('🔍 ask_database tool validation:', {
+      hasQuestionProperty: askDbTool.parameters.properties.question !== undefined,
+      questionRequired: askDbTool.parameters.required.includes('question'),
+      questionType: askDbTool.parameters.properties.question?.type
+    });
+  }
+
   // Create streaming response
   const stream = new ReadableStream({
     async start(controller) {
+      const encoder = new TextEncoder()
+      
+      // Helper functions for streaming
+      const enqueueContent = (content: string) => {
+        try {
+          const safeContent = JSON.stringify(content)
+          const chunk = `0:${safeContent}\n`
+          controller.enqueue(encoder.encode(chunk))
+          return true
+        } catch (error) {
+          console.error('❌ Error enqueuing content:', error)
+          return false
+        }
+      }
+
+      const enqueueError = (errorMessage: string) => {
+        try {
+          const safeError = JSON.stringify(`❌ ${errorMessage}`)
+          const chunk = `0:${safeError}\n`
+          controller.enqueue(encoder.encode(chunk))
+          return true
+        } catch (error) {
+          console.error('❌ Error enqueuing error:', error)
+          return false
+        }
+      }
+
+      const finishStream = () => {
+        try {
+          const finishJson = JSON.stringify({
+            finishReason: 'stop',
+            usage: { promptTokens: 0, completionTokens: 0 }
+          })
+          const chunk = `e:${finishJson}\n`
+          controller.enqueue(encoder.encode(chunk))
+          controller.close()
+          return true
+        } catch (error) {
+          console.error('❌ Error finishing stream:', error)
+          try {
+            controller.close()
+          } catch (closeError) {
+            console.error('❌ Error closing stream:', closeError)
+          }
+          return false
+        }
+      }
+      
       try {
         // Create LLM chat options
         const llmOptions: LLMChatOptions = {
-          messages: messages.map(msg => ({
-            role: msg.role,
-            content: msg.content
-          })),
+          messages: [
+            // Add system message to help LLM understand how to use tools
+            {
+              role: 'system',
+              content: `You are a highly capable AI assistant specializing in data analysis and visualization. Your primary goal is to help users understand their data through clear explanations, insightful analyses, and various visual representations. You are adept at generating **code blocks**, **charts**, **diagrams**, and raw **data** in formats like JSON, CSV, XML, and YAML.
+
+When a user asks a question, carefully determine if it involves data analysis, database querying, or system information.
+
+### Tool Usage Guidelines:
+
+* **For Data-Related Questions:** If a user's request involves querying, analyzing, or visualizing data, **always use the \`ask_database\` tool**. Pass the user's *entire question* as the "question" parameter to ensure the tool has full context. This includes requests for specific chart types (e.g., "show sales by month as a line chart") or data formats.
+    * **Example:**
+        * User: "What are the top 5 selling products?"
+        * Tool call: \`ask_database\` with \`{"question": "What are the top 5 selling products?"}\`
+    * **Example:**
+        * User: "Display customer distribution by region as a pie chart."
+        * Tool call: \`ask_database\` with \`{"question": "Display customer distribution by region as a pie chart."}\`
+
+* **For System Health Checks:** Use the \`health_check\` tool when the user explicitly asks about the system's operational status or health.
+
+* **For Server Information:** Use the \`get_server_info\` tool when the user requests details about the server environment.
+
+### Output Formatting Guidelines:
+
+* **Charts:** When generating charts, provide them as JSON in the following structure:
+
+    \`\`\`json
+    {
+      "chartType": "bar|line|area|pie",
+      "data": [
+        {"name": "A", "value": 100},
+        {"name": "B", "value": 200}
+      ],
+      "config": {
+        "xAxis": {"dataKey": "name"},
+        "series": [{"dataKey": "value", "fill": "#8884d8"}]
+      }
+    }
+    \`\`\`
+
+* **Diagrams:** Generate diagrams using **Mermaid syntax**.
+
+* **Code Blocks:** Present code in language-specific fenced code blocks (e.g., \`\`\`python\`, \`\`\`javascript\`\`).
+
+* **Data:** Output raw data in appropriate formats (JSON, CSV, XML, YAML) as requested or when it best represents the information.
+
+Always strive to provide the most relevant and visually appropriate output based on the user's query. If a visual representation is suitable, prioritize generating a chart or diagram. If raw data or code is more appropriate, provide that.`
+            },
+            ...messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          ],
           tools: llmTools,
           maxTokens: 2000,
           temperature: 0.7,
@@ -181,14 +288,28 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
 
           // Handle content chunks
           if (chunk.content) {
-            const aiSdkChunk = `0:${JSON.stringify(chunk.content)}\n`
-            controller.enqueue(new TextEncoder().encode(aiSdkChunk))
+            if (!enqueueContent(chunk.content)) {
+              console.error("❌ Failed to enqueue content chunk")
+              break
+            }
           }
 
-          // Accumulate tool calls
+          // Accumulate tool calls with basic validation
           if (chunk.toolCalls) {
-            accumulatedToolCalls.push(...chunk.toolCalls)
-            console.log("🔧 Tool calls detected:", chunk.toolCalls.map(tc => tc.name))
+            for (const toolCall of chunk.toolCalls) {
+              // Basic validation - ensure required fields exist
+              if (toolCall && typeof toolCall === 'object' && 
+                  toolCall.id && toolCall.name && toolCall.arguments) {
+                accumulatedToolCalls.push({
+                  id: toolCall.id,
+                  name: toolCall.name,
+                  arguments: toolCall.arguments
+                })
+                console.log("🔧 Tool call added:", toolCall.name)
+              } else {
+                console.warn("⚠️ Invalid tool call data, skipping:", toolCall)
+              }
+            }
           }
 
           // Handle completion with tool execution
@@ -206,54 +327,44 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
               if (result.content) {
                 for (const content of result.content) {
                   if (content.type === 'text' && content.text) {
-                    const toolChunk = `0:${JSON.stringify('\n\n' + content.text)}\n`
-                    controller.enqueue(new TextEncoder().encode(toolChunk))
+                    if (!enqueueContent('\n\n' + content.text)) {
+                      console.error("❌ Failed to enqueue tool result")
+                      break
+                    }
                   }
                 }
               }
             }
 
             console.log("🏁 Chat completed: tool_calls")
-            const finishChunk = `e:{"finishReason":"tool_calls","usage":{"promptTokens":0,"completionTokens":0}}\n`
-            controller.enqueue(new TextEncoder().encode(finishChunk))
-            controller.close()
+            finishStream()
             return
           }
 
           // Handle other completion reasons
           if (chunk.finishReason && chunk.finishReason !== 'stop') {
             console.log("🏁 Chat completed:", chunk.finishReason)
-            const finishChunk = `e:{"finishReason":"${chunk.finishReason}","usage":{"promptTokens":0,"completionTokens":0}}\n`
-            controller.enqueue(new TextEncoder().encode(finishChunk))
-            controller.close()
+            finishStream()
             return
           }
 
           // Handle normal completion
           if (chunk.finishReason === 'stop') {
             console.log("🏁 Chat completed: stop")
-            const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-            controller.enqueue(new TextEncoder().encode(finishChunk))
-            controller.close()
+            finishStream()
             return
           }
         }
 
         // Fallback completion
         console.log("🏁 Chat stream ended without explicit finish")
-        const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-        controller.enqueue(new TextEncoder().encode(finishChunk))
-        controller.close()
+        finishStream()
 
       } catch (error) {
         console.error("❌ Direct chat error:", error)
         const errorMessage = error instanceof Error ? error.message : "Unknown error"
-        const escapedError = errorMessage.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-        const chunk = `0:"❌ ${escapedError}"\n`
-        controller.enqueue(new TextEncoder().encode(chunk))
-        const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-        controller.enqueue(new TextEncoder().encode(finishChunk))
-        controller.close()
+        enqueueError(errorMessage)
+        finishStream()
       }
     }
   })
