@@ -10,10 +10,10 @@ interface AIAssistantIconProps {
 
 export function AIAssistantIcon({ className, size = 20 }: AIAssistantIconProps) {
   return (
-    <div className={cn("relative inline-flex items-center justify-center cursor-pointer transition-transform duration-300 hover:scale-110 hover:rotate-3 group", className)}>
+    <div className={cn("relative inline-flex items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-105 group", className)}>
       <Sparkles 
         size={size} 
-        className="text-blue-500 transition-all duration-300 hover:text-blue-600 hover:drop-shadow-lg" 
+        className="text-red-500 transition-all duration-200 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300" 
       />
     </div>
   )

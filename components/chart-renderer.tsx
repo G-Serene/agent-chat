@@ -26,27 +26,28 @@ interface ChartRendererProps {
   }
 }
 
-// Professional color palette
+// Minimalist color palette - Black, White, Red
 const COLORS = [
-  "#3b82f6", // Blue
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
+  "#000000", // Pure Black
   "#ef4444", // Red
-  "#8b5cf6", // Violet
-  "#06b6d4", // Cyan
-  "#84cc16", // Lime
-  "#f97316", // Orange
+  "#666666", // Medium Gray
+  "#999999", // Light Gray
+  "#dc2626", // Dark Red
+  "#333333", // Dark Gray
+  "#f87171", // Light Red
+  "#525252", // Charcoal
 ]
 
-// Professional chart theme
+// Minimalist chart theme
 const CHART_THEME = {
   fontSize: 12,
-  fontFamily: "system-ui, -apple-system, sans-serif",
+  fontFamily: "Inter, system-ui, -apple-system, sans-serif",
   colors: {
-    text: "#374151", // Gray-700
-    textLight: "#6b7280", // Gray-500
-    grid: "#e5e7eb", // Gray-200
-    background: "#ffffff",
+    text: "#000000", // Pure Black
+    textLight: "#666666", // Medium Gray
+    grid: "#f3f4f6", // Very Light Gray
+    background: "#ffffff", // Pure White
+    accent: "#ef4444", // Red
   },
 }
 

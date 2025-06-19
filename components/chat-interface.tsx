@@ -25,22 +25,22 @@ const quickPrompts = [
   {
     title: "Write code",
     prompt: "Write a Python script to analyze data from a CSV file",
-    icon: <Code className="w-4 h-4 mr-2 text-blue-500" />,
+    icon: <Code className="w-4 h-4 mr-2 text-black dark:text-white" />,
   },
   {
     title: "Create diagram",
     prompt: "Create a flowchart showing a typical data processing pipeline",
-    icon: <BarChart3 className="w-4 h-4 mr-2 text-green-500" />,
+    icon: <BarChart3 className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
     title: "Analyze data",
     prompt: "Help me analyze and visualize sales data trends",
-    icon: <FileText className="w-4 h-4 mr-2 text-purple-500" />,
+    icon: <FileText className="w-4 h-4 mr-2 text-black dark:text-white" />,
   },
   {
     title: "What can you do?",
     prompt: "What are your capabilities and how can you help me?",
-    icon: <Sparkles className="w-4 h-4 mr-2 text-orange-500" />,
+    icon: <Sparkles className="w-4 h-4 mr-2 text-red-500" />,
   },
 ]
 
