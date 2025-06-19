@@ -48,10 +48,6 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
    
    Update the environment variables:
    ```env
-   # Backend Configuration
-   NEXT_PUBLIC_BACKEND_URL=http://localhost:8501
-   BACKEND_URL=http://localhost:8501
-   
    # Authentication Configuration
    NEXTAUTH_URL=http://localhost:3000
    NEXTAUTH_SECRET=your-secret-key-here
@@ -62,17 +58,13 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
    AUTH_AZURE_AD_CLIENT_SECRET=your-azure-client-secret
    AUTH_AZURE_AD_TENANT_ID=your-azure-tenant-id
    
-   # Azure OpenAI Configuration (Optional)
+   # Azure OpenAI Configuration (Required for MCP integration)
    # When API key is provided, it will be used for authentication
    # When API key is not provided, Azure AD authentication will be used
    AZURE_OPENAI_ENDPOINT=https://your-azure-openai-resource.openai.azure.com/
    AZURE_OPENAI_API_KEY=your-azure-openai-api-key
    AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
    AZURE_OPENAI_API_VERSION=2024-10-21
-   
-   # For production, change to your actual backend URL:
-   # NEXT_PUBLIC_BACKEND_URL=https://your-backend-domain.com
-   # BACKEND_URL=https://your-backend-domain.com
    ```
 
 4. **Start the development server**
@@ -131,50 +123,38 @@ autogen-chat-ui/
 
 ## 🔧 Configuration
 
-### Backend Integration
+### MCP Integration
 
-The app expects a FastAPI backend with the following endpoints:
+The application uses Model Context Protocol (MCP) for AI capabilities and tool integration. No external backend URL is required.
 
-- \`GET /health\` - Health check endpoint
-- \`POST /api/chat\` - Chat streaming endpoint
+**MCP Features:**
+- Direct Azure OpenAI integration
+- Tool calling capabilities
+- Resource management
+- Prompt templates
+- Session management
 
-**Expected chat request format:**
-\`\`\`json
-{
-  "messages": [
-    {
-      "role": "user",
-      "content": "Hello, how can you help me?"
-    }
-  ],
-  "session_id": "unique-session-id"
-}
-\`\`\`
-
-**Expected streaming response format:**
-\`\`\`
-data: {"choices": [{"delta": {"content": "Hello! I can help you with..."}}]}
-
-data: {"choices": [{"delta": {"content": " various tasks."}}]}
-
-data: [DONE]
-\`\`\`
+**MCP Configuration:**
+**MCP Configuration:**
+The MCP configuration is defined in `mcp.json` and includes:
+- Server definitions and connection settings
+- Available tools and their schemas
+- Resource definitions
+- Prompt templates
 
 ### Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_BACKEND_URL` | Public backend URL (client-side) | `http://localhost:8501` |
-| `BACKEND_URL` | Backend URL (server-side) | `http://localhost:8501` |
 | `NEXTAUTH_URL` | Your application URL | `http://localhost:3000` |
 | `NEXTAUTH_SECRET` | Secret key for JWT encryption | Required |
 | `NODE_ENV` | Environment mode | `development` |
 | `AUTH_AZURE_AD_CLIENT_ID` | Azure App Registration Client ID | Production only |
 | `AUTH_AZURE_AD_CLIENT_SECRET` | Azure App Registration Client Secret | Production only |
 | `AUTH_AZURE_AD_TENANT_ID` | Azure Tenant ID | Production only |
-| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint URL | Optional |
-| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key (if not provided, Azure AD will be used) | Optional |
-| `AZURE_OPENAI_DEPLOYMENT_NAME` | Azure OpenAI model deployment name | Required if endpoint configured |
+| `AZURE_OPENAI_ENDPOINT` | Azure OpenAI resource endpoint URL | Required |
+| `AZURE_OPENAI_API_KEY` | Azure OpenAI API key (if not provided, Azure AD will be used) | Required |
+| `AZURE_OPENAI_DEPLOYMENT_NAME` | Azure OpenAI model deployment name | Required |
 | `AZURE_OPENAI_API_VERSION` | Azure OpenAI API version | `2024-10-21` |
 
 ## 🔐 Authentication
@@ -267,24 +247,24 @@ Charts should be provided as JSON with this structure:
 
 ## 🧪 Testing
 
-### Backend Connection Test
+### MCP Connection Test
 
-Use the built-in debug panel to test your backend connection:
+Use the built-in debug panel to test your MCP connection:
 
 1. Navigate to your app
-2. The debug panel will show connection status
+2. The debug panel will show MCP connection status
 3. Check browser console for detailed logs
 
 ### Manual Testing
 
 \`\`\`bash
-# Test backend health
-curl http://localhost:8501/health
+# Test MCP API endpoint
+curl http://localhost:3000/api/mcp
 
-# Test chat endpoint
-curl -X POST http://localhost:8501/api/chat \\
-  -H "Content-Type: application/json" \\
-  -d '{"messages": [{"role": "user", "content": "Hello"}], "session_id": "test"}'
+# Test chat with MCP
+curl -X POST http://localhost:3000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"messages": [{"role": "user", "content": "Hello"}], "session_id": "test", "mcp_enabled": true}'
 \`\`\`
 
 ## 🚀 Deployment
@@ -305,8 +285,11 @@ curl -X POST http://localhost:8501/api/chat \\
 
 3. **Environment Variables in Vercel**
    \`\`\`
-   NEXT_PUBLIC_BACKEND_URL=https://your-backend.com
-   BACKEND_URL=https://your-backend.com
+   NEXTAUTH_URL=https://your-domain.vercel.app
+   NEXTAUTH_SECRET=your-production-secret
+   AZURE_OPENAI_ENDPOINT=https://your-azure-openai-resource.openai.azure.com/
+   AZURE_OPENAI_API_KEY=your-azure-openai-api-key
+   AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
    \`\`\`
 
 ### Docker
@@ -326,8 +309,11 @@ CMD ["npm", "start"]
 \`\`\`
 
 \`\`\`bash
-docker build -t autogen-chat-ui .
-docker run -p 3000:3000 -e NEXT_PUBLIC_BACKEND_URL=http://your-backend:8501 autogen-chat-ui
+docker build -t agent-chat-mcp .
+docker run -p 3000:3000 \\
+  -e AZURE_OPENAI_ENDPOINT=https://your-azure-openai-resource.openai.azure.com/ \\
+  -e AZURE_OPENAI_API_KEY=your-api-key \\
+  agent-chat-mcp
 \`\`\`
 
 ## 🛠️ Development
@@ -351,13 +337,13 @@ npm run lint     # Run ESLint
 
 - Check browser console for client-side logs
 - Check terminal for server-side logs
-- Use the built-in debug panel for backend connectivity
+- Use the built-in MCP debug panel for connection testing
 
 ## 📝 API Reference
 
-### Chat API (\`/api/chat\`)
+### Chat API (`/api/chat`)
 
-**POST** \`/api/chat\`
+**POST** `/api/chat`
 
 Request body:
 \`\`\`typescript
@@ -367,16 +353,22 @@ Request body:
     content: string
   }>
   session_id: string
+  mcp_enabled: boolean
+  selected_tools: string[]
 }
 \`\`\`
 
-Response: Server-Sent Events stream
+Response: Server-Sent Events stream with MCP tool integration
 
-### Test Backend API (\`/api/test-backend\`)
+### MCP API (\`/api/mcp\`)
 
-**GET** \`/api/test-backend\`
+**GET** \`/api/mcp\`
 
-Returns backend connection status and health information.
+Returns MCP connection status, available tools, resources, and server information.
+
+**POST** \`/api/mcp\`
+
+Execute MCP actions like tool calls and server management.
 
 ## 🤝 Contributing
 

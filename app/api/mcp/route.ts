@@ -13,6 +13,7 @@ export async function GET() {
     const resources = mcpClientManager.getAllResources()
     const prompts = mcpClientManager.getAllPrompts()
     const serverStatuses = Object.fromEntries(mcpClientManager.getServerStatuses())
+    const health = mcpClientManager.getConnectionHealth()
 
     return NextResponse.json({
       success: true,
@@ -22,7 +23,8 @@ export async function GET() {
         prompts,
         serverStatuses,
         connected: mcpClientManager.hasConnectedServers(),
-        connectedCount: mcpClientManager.getConnectedServerCount()
+        connectedCount: mcpClientManager.getConnectedServerCount(),
+        health
       }
     })
   } catch (error) {
@@ -54,9 +56,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, result })
 
       case 'refreshConnections':
-        // Disconnect and reconnect to refresh server connections
-        await mcpClientManager.disconnect()
-        await mcpClientManager.initialize()
+        // Use intelligent refresh instead of aggressive disconnect/reconnect
+        await mcpClientManager.refreshConnections()
         return NextResponse.json({ success: true, message: 'Connections refreshed' })
 
       default:

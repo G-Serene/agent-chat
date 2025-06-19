@@ -4,6 +4,7 @@
  */
 
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { 
   MCPConfig, 
   MCPServerConfig, 
@@ -15,21 +16,39 @@ import {
   MCPToolResult
 } from './types';
 import { mcpConfigManager } from './config';
-import { createStreamableHTTPTransport } from './transport';
 import { AzureOpenAIService, ChatCompletionOptions } from './azure-openai';
 import { loadAzureOpenAIConfig } from './azure-config';
 
+// Client-safe transport configuration
+const mcpTransportConfig = {
+  retryAttempts: 3,
+  retryDelay: 1000,
+  connectionTimeout: 30000, // Increased from 10s to 30s
+  requestTimeout: 60000,    // Increased from 30s to 60s
+  keepAliveInterval: 30000
+} as const;
+
 export class MCPClientManager {
   private clients: Map<string, Client> = new Map();
+  private transports: Map<string, StreamableHTTPClientTransport> = new Map();
   private statuses: Map<string, MCPClientStatus> = new Map();
   private azureOpenAI: AzureOpenAIService | null = null;
   private config: MCPConfig | null = null;
+  private connectionRetries: Map<string, number> = new Map();
+  private isInitialized = false;
 
   /**
    * Initialize MCP client manager
    */
   async initialize(): Promise<void> {
+    if (this.isInitialized) {
+      console.log('ℹ️ MCP Client Manager is already initialized');
+      return;
+    }
+
     try {
+      console.log('🔄 Initializing MCP Client Manager...');
+      
       // Load MCP configuration
       this.config = await mcpConfigManager.loadConfig();
       console.log('📄 MCP configuration loaded');
@@ -47,7 +66,11 @@ export class MCPClientManager {
       // Initialize MCP servers
       await this.initializeServers();
       
-      console.log('✅ MCP Client Manager initialized successfully');
+      this.isInitialized = true;
+      
+      const connectedCount = this.getConnectedServerCount();
+      const totalServers = Object.keys(this.config.servers).length;
+      console.log(`✅ MCP Client Manager initialized successfully. Connected servers: ${connectedCount}/${totalServers}, Total tools: ${this.getAllTools().length}`);
     } catch (error) {
       console.error('❌ Failed to initialize MCP Client Manager:', error);
       throw new Error(`MCP initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -92,52 +115,121 @@ export class MCPClientManager {
       throw new Error(`Server configuration not found: ${serverName}`);
     }
 
-    try {
-      // Create transport based on server type
-      let transport;
-      
-      switch (serverConfig.type) {
-        case 'sse':
-        case 'http':
-          transport = createStreamableHTTPTransport(serverConfig);
-          break;
-        case 'stdio':
-          throw new Error('STDIO transport not yet implemented');
-        default:
-          throw new Error(`Unsupported transport type: ${serverConfig.type}`);
-      }
+    console.log(`🔗 Connecting to MCP server: ${serverName} (${serverConfig.url || serverConfig.command})`);
 
-      // Create and connect client
-      const client = new Client(
-        {
-          name: `agent-chat-${serverName}`,
-          version: '1.0.0'
-        },
-        {
-          capabilities: {
-            tools: {},
-            resources: {},
-            prompts: {}
-          }
+    // Retry logic for connection
+    const maxRetries = mcpTransportConfig.retryAttempts;
+    let attempt = this.connectionRetries.get(serverName) || 0;
+
+    while (attempt < maxRetries) {
+      try {
+        // Create transport based on server type
+        let transport;
+        
+        switch (serverConfig.type) {
+          case 'http':
+            if (!serverConfig.url) {
+              throw new Error(`URL is required for HTTP transport: ${serverName}`);
+            }
+            transport = new StreamableHTTPClientTransport(new URL(serverConfig.url), {
+              requestInit: {
+                headers: serverConfig.headers || {}
+              }
+            });
+            break;
+          case 'stdio':
+            throw new Error('STDIO transport not yet implemented');
+          default:
+            throw new Error(`Unsupported transport type: ${serverConfig.type}`);
         }
-      );
 
-      // Connect to server
-      await client.connect(transport);
-      this.clients.set(serverName, client);
+        // Create and connect client
+        const client = new Client(
+          {
+            name: `agent-chat-${serverName}`,
+            version: '1.0.0'
+          },
+          {
+            capabilities: {
+              tools: {},
+              resources: {},
+              prompts: {}
+            }
+          }
+        );
 
-      // Fetch server capabilities
-      const status = await this.fetchServerCapabilities(serverName, client);
-      this.statuses.set(serverName, status);
+        // Set up error handling
+        transport.onerror = (error: Error) => {
+          console.error(`❌ Transport error for ${serverName}:`, error);
+        };
 
-      console.log(`✅ Connected to MCP server: ${serverName}`);
-      console.log(`   Tools: ${status.tools.length}`);
-      console.log(`   Resources: ${status.resources.length}`);
-      console.log(`   Prompts: ${status.prompts.length}`);
+        transport.onclose = () => {
+          console.log(`🔌 Transport closed for ${serverName}`);
+          this.statuses.set(serverName, {
+            connected: false,
+            serverName,
+            tools: [],
+            resources: [],
+            prompts: [],
+            error: 'Connection closed'
+          });
+        };
 
-    } catch (error) {
-      console.error(`❌ Failed to connect to server ${serverName}:`, error);
-      throw error;
+        // Connect to server with timeout
+        const connectionTimeout = serverConfig.timeout || mcpTransportConfig.connectionTimeout;
+        await Promise.race([
+          client.connect(transport),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error(`Connection timeout after ${connectionTimeout}ms`)), connectionTimeout)
+          )
+        ]);
+        
+        this.clients.set(serverName, client);
+        this.transports.set(serverName, transport);
+        console.log(`🔌 Successfully connected to ${serverName}`);
+
+        // Fetch server capabilities with timeout
+        const status = await Promise.race([
+          this.fetchServerCapabilities(serverName, client),
+          new Promise<never>((_, reject) => 
+            setTimeout(() => reject(new Error(`Capability fetch timeout after ${connectionTimeout}ms`)), connectionTimeout)
+          )
+        ]);
+        
+        this.statuses.set(serverName, status);
+
+        console.log(`✅ Connected to MCP server: ${serverName}`);
+        console.log(`   Tools: ${status.tools.length}`);
+        console.log(`   Resources: ${status.resources.length}`);
+        console.log(`   Prompts: ${status.prompts.length}`);
+
+        // Reset retry count on successful connection
+        this.connectionRetries.set(serverName, 0);
+        return; // Exit the function on successful connection
+
+      } catch (error) {
+        attempt++;
+        this.connectionRetries.set(serverName, attempt);
+
+        console.error(`❌ Failed to connect to server ${serverName} (attempt ${attempt} of ${maxRetries}):`, error);
+        
+        // If max retries reached, set error status and throw
+        if (attempt >= maxRetries) {
+          this.statuses.set(serverName, {
+            connected: false,
+            serverName,
+            tools: [],
+            resources: [],
+            prompts: [],
+            error: error instanceof Error ? error.message : 'Unknown error'
+          });
+          
+          throw new Error(`Max retries reached. Failed to connect to server ${serverName}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, mcpTransportConfig.retryDelay));
+      }
     }
   }
 
@@ -165,7 +257,12 @@ export class MCPClientManager {
         : [];
 
       const resources: MCPResource[] = resourcesResult.status === 'fulfilled'
-        ? resourcesResult.value.resources || []
+        ? (resourcesResult.value.resources || []).map((resource: any) => ({
+            uri: resource.uri,
+            name: resource.name,
+            description: resource.description,
+            mimeType: resource.mimeType
+          }))
         : [];
 
       const prompts: MCPPrompt[] = promptsResult.status === 'fulfilled'
@@ -240,7 +337,7 @@ export class MCPClientManager {
    * Find which server provides a specific tool
    */
   private findServerWithTool(toolName: string): string | null {
-    for (const [serverName, status] of this.statuses.entries()) {
+    for (const [serverName, status] of Array.from(this.statuses.entries())) {
       if (status.connected && status.tools.some(tool => tool.name === toolName)) {
         return serverName;
       }
@@ -254,7 +351,7 @@ export class MCPClientManager {
   getAllTools(): MCPTool[] {
     const allTools: MCPTool[] = [];
     
-    for (const status of this.statuses.values()) {
+    for (const status of Array.from(this.statuses.values())) {
       if (status.connected) {
         allTools.push(...status.tools);
       }
@@ -269,7 +366,7 @@ export class MCPClientManager {
   getAllResources(): MCPResource[] {
     const allResources: MCPResource[] = [];
     
-    for (const status of this.statuses.values()) {
+    for (const status of Array.from(this.statuses.values())) {
       if (status.connected) {
         allResources.push(...status.resources);
       }
@@ -284,7 +381,7 @@ export class MCPClientManager {
   getAllPrompts(): MCPPrompt[] {
     const allPrompts: MCPPrompt[] = [];
     
-    for (const status of this.statuses.values()) {
+    for (const status of Array.from(this.statuses.values())) {
       if (status.connected) {
         allPrompts.push(...status.prompts);
       }
@@ -305,6 +402,132 @@ export class MCPClientManager {
    */
   getServerStatus(serverName: string): MCPClientStatus | null {
     return this.statuses.get(serverName) || null;
+  }
+
+  /**
+   * Add a new MCP server dynamically
+   */
+  async addServer(serverConfig: {
+    id: string;
+    name: string;
+    description: string;
+    url: string;
+    type: 'http' | 'stdio';
+  }): Promise<MCPClientStatus> {
+    try {
+      // Update the config manager with the new server
+      if (!this.config) {
+        throw new Error('MCP configuration not loaded');
+      }
+
+      // Add server to config
+      this.config.servers[serverConfig.id] = {
+        type: serverConfig.type,
+        url: serverConfig.url,
+        description: serverConfig.description
+      };
+
+      // Connect to the new server
+      await this.connectToServer(serverConfig.id);
+      
+      const status = this.statuses.get(serverConfig.id);
+      if (!status) {
+        throw new Error(`Failed to get status for server ${serverConfig.id}`);
+      }
+
+      return status;
+    } catch (error) {
+      throw new Error(`Failed to add server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Remove an MCP server
+   */
+  async removeServer(serverId: string): Promise<void> {
+    const serverIndex = Array.from(this.statuses.keys()).indexOf(serverId);
+    if (serverIndex === -1) {
+      throw new Error(`Server ${serverId} not found`);
+    }
+
+    // Disconnect if connected
+    const client = this.clients.get(serverId);
+    const transport = this.transports.get(serverId);
+    
+    if (client) {
+      try {
+        await client.close();
+        console.log(`✅ Disconnected client from ${serverId}`);
+      } catch (error) {
+        console.error(`❌ Error disconnecting client from ${serverId}:`, error);
+      }
+    }
+
+    if (transport) {
+      try {
+        await transport.close();
+        console.log(`✅ Disconnected transport from ${serverId}`);
+      } catch (error) {
+        console.error(`❌ Error disconnecting transport from ${serverId}:`, error);
+      }
+    }
+
+    // Remove from maps
+    this.clients.delete(serverId);
+    this.transports.delete(serverId);
+    this.statuses.delete(serverId);
+    this.connectionRetries.delete(serverId);
+    
+    // Remove from config if it exists
+    if (this.config && this.config.servers[serverId]) {
+      delete this.config.servers[serverId];
+    }
+
+    console.log(`🗑️ Removed server: ${serverId}`);
+  }
+
+  /**
+   * Refresh connections for all servers
+   */
+  async refreshConnections(): Promise<void> {
+    console.log('🔄 Refreshing all MCP connections...');
+    
+    if (!this.config) {
+      console.log('⚠️ No config loaded, performing full initialization instead...');
+      await this.initialize();
+      return;
+    }
+
+    const serverNames = Object.keys(this.config.servers);
+    const connectionPromises = serverNames.map(async serverName => {
+      try {
+        // Check if server is already connected and healthy
+        const currentStatus = this.statuses.get(serverName);
+        if (currentStatus?.connected) {
+          console.log(`ℹ️ Server ${serverName} already connected, skipping refresh`);
+          return;
+        }
+
+        // Only reconnect if not already connected
+        await this.connectToServer(serverName);
+      } catch (error) {
+        console.warn(`Failed to refresh connection to server ${serverName}:`, error);
+        // Set error status but don't fail the entire refresh
+        this.statuses.set(serverName, {
+          connected: false,
+          serverName,
+          tools: [],
+          resources: [],
+          prompts: [],
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    });
+
+    await Promise.allSettled(connectionPromises);
+    
+    const connectedCount = this.getConnectedServerCount();
+    console.log(`🔄 Connection refresh completed. Connected servers: ${connectedCount}/${serverNames.length}`);
   }
 
   /**
@@ -391,17 +614,33 @@ export class MCPClientManager {
       async ([serverName, client]) => {
         try {
           await client.close();
-          console.log(`✅ Disconnected from ${serverName}`);
+          console.log(`✅ Disconnected client from ${serverName}`);
         } catch (error) {
-          console.error(`❌ Error disconnecting from ${serverName}:`, error);
+          console.error(`❌ Error disconnecting client from ${serverName}:`, error);
         }
       }
     );
 
-    await Promise.allSettled(disconnectPromises);
+    const transportDisconnectPromises = Array.from(this.transports.entries()).map(
+      async ([serverName, transport]) => {
+        try {
+          await transport.close();
+          console.log(`✅ Disconnected transport from ${serverName}`);
+        } catch (error) {
+          console.error(`❌ Error disconnecting transport from ${serverName}:`, error);
+        }
+      }
+    );
+
+    await Promise.allSettled([...disconnectPromises, ...transportDisconnectPromises]);
     
     this.clients.clear();
+    this.transports.clear();
     this.statuses.clear();
+    this.connectionRetries.clear();
+    
+    // Reset initialization flag to allow clean re-initialization
+    this.isInitialized = false;
     
     console.log('🔌 All MCP connections closed');
   }
@@ -418,6 +657,82 @@ export class MCPClientManager {
    */
   getConnectedServerCount(): number {
     return Array.from(this.statuses.values()).filter(status => status.connected).length;
+  }
+
+  /**
+   * Check if client is initialized
+   */
+  isReady(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
+   * Check if a specific server is healthy and connected
+   */
+  isServerHealthy(serverName: string): boolean {
+    const status = this.statuses.get(serverName);
+    return status?.connected === true;
+  }
+
+  /**
+   * Get health status of all servers
+   */
+  getConnectionHealth(): { healthy: number; total: number; details: Record<string, boolean> } {
+    const total = this.statuses.size;
+    let healthy = 0;
+    const details: Record<string, boolean> = {};
+
+    for (const [serverName, status] of this.statuses.entries()) {
+      const isHealthy = status.connected;
+      details[serverName] = isHealthy;
+      if (isHealthy) healthy++;
+    }
+
+    return { healthy, total, details };
+  }
+
+  /**
+   * Get all available servers (connected and disconnected)
+   */
+  getAvailableServers(): Array<{
+    id: string;
+    name: string;
+    status: 'connected' | 'disconnected' | 'error';
+    error?: string;
+    toolCount: number;
+    resourceCount: number;
+    promptCount: number;
+  }> {
+    return Array.from(this.statuses.entries()).map(([id, status]) => ({
+      id,
+      name: status.serverName,
+      status: status.connected ? 'connected' : status.error ? 'error' : 'disconnected',
+      error: status.error,
+      toolCount: status.tools.length,
+      resourceCount: status.resources.length,
+      promptCount: status.prompts.length
+    }));
+  }
+
+  /**
+   * Get connected servers only
+   */
+  getConnectedServers(): Array<{
+    id: string;
+    name: string;
+    toolCount: number;
+    resourceCount: number;
+    promptCount: number;
+  }> {
+    return Array.from(this.statuses.entries())
+      .filter(([_, status]) => status.connected)
+      .map(([id, status]) => ({
+        id,
+        name: status.serverName,
+        toolCount: status.tools.length,
+        resourceCount: status.resources.length,
+        promptCount: status.prompts.length
+      }));
   }
 }
 

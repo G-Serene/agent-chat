@@ -4,6 +4,8 @@
  */
 
 import { MCPConfig, MCPServerConfig, MCPInput } from './types';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export class MCPConfigManager {
   private config: MCPConfig | null = null;
@@ -14,12 +16,23 @@ export class MCPConfigManager {
    */
   async loadConfig(): Promise<MCPConfig> {
     try {
-      const response = await fetch('/mcp.json');
-      if (!response.ok) {
-        throw new Error(`Failed to load MCP config: ${response.statusText}`);
+      let configData: string;
+
+      // Check if we're running in a server environment (Node.js)
+      if (typeof window === 'undefined') {
+        // Server-side: read from file system
+        const configPath = path.join(process.cwd(), 'mcp.json');
+        configData = fs.readFileSync(configPath, 'utf8');
+      } else {
+        // Client-side: use fetch
+        const response = await fetch('/mcp.json');
+        if (!response.ok) {
+          throw new Error(`Failed to load MCP config: ${response.statusText}`);
+        }
+        configData = await response.text();
       }
       
-      this.config = await response.json();
+      this.config = JSON.parse(configData);
       if (!this.config) {
         throw new Error('MCP config is null or undefined');
       }
@@ -61,11 +74,11 @@ export class MCPConfigManager {
       throw new Error(`Server ${name} must specify a type`);
     }
 
-    if (!['stdio', 'sse', 'http'].includes(config.type)) {
+    if (!['stdio', 'http'].includes(config.type)) {
       throw new Error(`Server ${name} has invalid type: ${config.type}`);
     }
 
-    if ((config.type === 'sse' || config.type === 'http') && !config.url) {
+    if (config.type === 'http' && !config.url) {
       throw new Error(`Server ${name} with type ${config.type} must specify a URL`);
     }
 

@@ -31,7 +31,7 @@ export default function ChatPage() {
 
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
-    api: mcp.isConnected ? "/api/chat-mcp" : "/api/chat",
+    api: "/api/chat",
     id: currentSessionId,
     key: chatComponentKey.toString(),
     body: {

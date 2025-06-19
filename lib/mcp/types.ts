@@ -16,13 +16,14 @@ export interface MCPInput {
 }
 
 export interface MCPServerConfig {
-  type: 'stdio' | 'sse' | 'http';
+  type: 'stdio' | 'http';
   url?: string;
   command?: string;
   args?: string[];
   env?: Record<string, string>;
   headers?: Record<string, string>;
   description?: string;
+  timeout?: number; // Timeout in milliseconds
 }
 
 export interface MCPTool {

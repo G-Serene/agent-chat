@@ -5,6 +5,7 @@
       "type": "http",
       "url": "http://localhost:8080/mcp",
       "description": "Local data agent backend with AI capabilities",
+      "timeout": 90000,
       "headers": {
         "Content-Type": "application/json"
       }

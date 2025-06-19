@@ -57,6 +57,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
   const [selectedResources, setSelectedResourcesState] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastStatusUpdate, setLastStatusUpdate] = useState<number>(0)
 
   // Load persisted selections from localStorage
   useEffect(() => {
@@ -93,6 +94,13 @@ export function MCPProvider({ children }: MCPProviderProps) {
 
   // Get MCP status from API
   const getStatus = useCallback(async () => {
+    // Debounce rapid successive calls (minimum 1 second between calls)
+    const now = Date.now();
+    if (now - lastStatusUpdate < 1000) {
+      console.log('ℹ️ Debouncing MCP status check (too frequent)');
+      return;
+    }
+
     try {
       const response = await fetch('/api/mcp', {
         method: 'GET',
@@ -115,6 +123,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
         setIsConnected(data.data.connected || false)
         setConnectedCount(data.data.connectedCount || 0)
         setError(null)
+        setLastStatusUpdate(now)
       } else {
         throw new Error(data.error || 'Failed to get MCP status')
       }
@@ -124,10 +133,21 @@ export function MCPProvider({ children }: MCPProviderProps) {
       setIsConnected(false)
       setConnectedCount(0)
     }
-  }, [])
+  }, [lastStatusUpdate])
 
   // Initialize MCP client
   const initialize = useCallback(async () => {
+    // Prevent multiple simultaneous initialization attempts
+    if (isLoading) {
+      console.log('ℹ️ MCP initialization already in progress, skipping...');
+      return;
+    }
+
+    if (isInitialized) {
+      console.log('ℹ️ MCP already initialized, skipping...');
+      return;
+    }
+
     setIsLoading(true)
     setError(null)
     
@@ -162,10 +182,16 @@ export function MCPProvider({ children }: MCPProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [getStatus])
+  }, [getStatus, isLoading, isInitialized])
 
   // Refresh MCP connections
   const refreshConnections = useCallback(async () => {
+    // Prevent multiple simultaneous refresh attempts
+    if (isLoading) {
+      console.log('ℹ️ MCP operation already in progress, skipping refresh...');
+      return;
+    }
+
     setIsLoading(true)
     setError(null)
     
@@ -198,7 +224,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [getStatus])
+  }, [getStatus, isLoading])
 
   // Execute MCP tool
   const executeTool = useCallback(async (toolName: string, args: Record<string, any>) => {
@@ -234,12 +260,17 @@ export function MCPProvider({ children }: MCPProviderProps) {
 
   // Initialize on mount
   useEffect(() => {
+    let isComponentMounted = true;
+
     const initializeMCP = async () => {
       try {
+        // Only get status initially
         await getStatus()
         
         // Auto-initialize if not already initialized and we have servers configured
-        if (!isInitialized && Object.keys(serverStatuses).length > 0) {
+        // but ensure the component is still mounted to avoid race conditions
+        if (isComponentMounted && !isInitialized && Object.keys(serverStatuses).length > 0) {
+          console.log('🔄 Auto-initializing MCP on mount...');
           await initialize()
         }
       } catch (err) {
@@ -247,7 +278,13 @@ export function MCPProvider({ children }: MCPProviderProps) {
       }
     }
 
-    initializeMCP()
+    // Add a small delay to avoid immediate initialization conflicts
+    const timeoutId = setTimeout(initializeMCP, 100);
+
+    return () => {
+      isComponentMounted = false;
+      clearTimeout(timeoutId);
+    };
   }, []) // Empty dependency array for mount-only effect
 
   // Auto-select all tools when they become available
