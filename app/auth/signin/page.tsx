@@ -51,23 +51,23 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900">
-            <Shield className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 p-4">
+      <Card className="w-full max-w-md bg-background/80 backdrop-blur-md border shadow-lg">
+        <CardHeader className="text-center space-y-2 pb-6">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">
+            <Shield className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-bold">
-            {isDevelopment ? "Development Access" : "Sign In"}
+          <CardTitle className="text-2xl font-semibold text-foreground">
+            {isDevelopment ? "Development Access" : "Welcome to Agent Chat"}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-muted-foreground">
             {isDevelopment
               ? "You're in development mode. Authentication is bypassed for easier development."
               : "Sign in with your Azure account to continue"}
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4">{/* clean spacing */}
           {error && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -76,9 +76,9 @@ export default function SignInPage() {
           )}
 
           {isDevelopment && (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
+            <Alert className="border-amber-200/50 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <strong>Development Mode:</strong> SSO is disabled. Click below to continue as a developer.
               </AlertDescription>
             </Alert>
@@ -89,7 +89,7 @@ export default function SignInPage() {
               <Button
                 onClick={() => handleSignIn("dev-bypass")}
                 disabled={isLoading}
-                className="w-full"
+                className="w-full h-11 font-medium transition-all"
                 size="lg"
               >
                 <User className="mr-2 h-4 w-4" />
@@ -99,10 +99,10 @@ export default function SignInPage() {
               <Button
                 onClick={() => handleSignIn("azure-ad")}
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                className="w-full h-11 font-medium transition-all"
                 size="lg"
               >
-                <MicrosoftLogo className="mr-3" size={24} />
+                <MicrosoftLogo className="mr-3" size={18} />
                 {isLoading ? "Signing in..." : "Sign in with Microsoft"}
               </Button>
             )}
