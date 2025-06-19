@@ -23,19 +23,19 @@ interface ChatInterfaceProps {
 
 const quickPrompts = [
   {
+    title: "Discover data",
+    prompt: "Help me discover and explore data assets across WMA Data Platform",
+    icon: <FileText className="w-4 h-4 mr-2 text-red-500" />,
+  },
+  {
     title: "Write code",
-    prompt: "Write a Python script to analyze data from a CSV file",
-    icon: <Code className="w-4 h-4 mr-2 text-black dark:text-white" />,
+    prompt: "Write code to integrate with WMA Data Platform APIs and services",
+    icon: <Code className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
-    title: "Create diagram",
-    prompt: "Create a flowchart showing a typical data processing pipeline",
+    title: "Create chart",
+    prompt: "Generate interactive charts and visualizations from my data",
     icon: <BarChart3 className="w-4 h-4 mr-2 text-red-500" />,
-  },
-  {
-    title: "Analyze data",
-    prompt: "Help me analyze and visualize sales data trends",
-    icon: <FileText className="w-4 h-4 mr-2 text-black dark:text-white" />,
   },
   {
     title: "What can you do?",
@@ -133,8 +133,8 @@ export function ChatInterface({
           <Textarea
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask me to write code, create diagrams, analyze data, or anything else..."
-            className="min-h-[48px] max-h-40 resize-none pr-16 border-input focus:ring-2 focus:ring-slate-400 shadow-sm text-base"
+            placeholder="Ask me to analyze data, write code, create charts, or anything else..."
+            className="min-h-[48px] max-h-40 resize-none pr-16 border-input focus:ring-2 focus:ring-black shadow-sm text-base"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
