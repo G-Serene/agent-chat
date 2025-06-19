@@ -146,7 +146,7 @@ export const MessageBubble = memo(function MessageBubble({
         <div
           className={cn(
             "relative group rounded-2xl px-4 py-3 shadow-md max-w-xl lg:max-w-2xl xl:max-w-3xl break-words",
-            isUser ? "bg-gray-200 text-gray-900 rounded-br-none" : "bg-card text-card-foreground border rounded-bl-none",
+            isUser ? "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-br-none" : "bg-card text-card-foreground border rounded-bl-none",
           )}
         >
           {/* Message Content */}
