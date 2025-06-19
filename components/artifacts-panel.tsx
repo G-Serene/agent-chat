@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -372,14 +372,14 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                               </pre>
                             </div>
                           )}
-                          {invocation.result && (
+                          {invocation.state === "result" && (invocation as any).result && (
                             <div>
                               <h4 className="font-medium mb-2">Result:</h4>
                               <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                                 <p className="text-sm text-green-700">
-                                  {typeof invocation.result === "string"
-                                    ? invocation.result
-                                    : JSON.stringify(invocation.result, null, 2)}
+                                  {typeof (invocation as any).result === "string"
+                                    ? (invocation as any).result
+                                    : JSON.stringify((invocation as any).result, null, 2)}
                                 </p>
                               </div>
                             </div>

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import type { FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"

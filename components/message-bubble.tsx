@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"

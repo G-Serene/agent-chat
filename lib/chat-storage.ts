@@ -1,4 +1,4 @@
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 
 export interface ChatSession {
   id: string
@@ -26,8 +26,9 @@ function generateChatTitle(messages: Message[]): string {
     return "New Chat"
   }
 
-  const content =
-    typeof firstUserMessage.content === "string" ? firstUserMessage.content : firstUserMessage.content.toString()
+  const content = typeof firstUserMessage.content === "string" 
+    ? firstUserMessage.content 
+    : String(firstUserMessage.content)
 
   // Take first 50 characters and clean up
   const title = content.substring(0, 50).trim()
@@ -41,7 +42,9 @@ function getLastMessagePreview(messages: Message[]): string {
     return "No messages"
   }
 
-  const content = typeof lastMessage.content === "string" ? lastMessage.content : lastMessage.content.toString()
+  const content = typeof lastMessage.content === "string" 
+    ? lastMessage.content 
+    : String(lastMessage.content)
 
   // Remove code blocks for preview
   const cleanContent = content.replace(/```[\s\S]*?```/g, "[code]").trim()
