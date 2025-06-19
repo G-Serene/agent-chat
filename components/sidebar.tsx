@@ -54,7 +54,7 @@ export function Sidebar({
       <div className="p-4 border-b">
         <Button
           onClick={onNewChat}
-          className="w-full justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 dark:bg-slate-600 dark:hover:bg-slate-700"
+          className="w-full justify-center gap-2 bg-black hover:bg-gray-900 text-white text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 dark:bg-black dark:hover:bg-gray-900"
         >
           <PlusCircle className="w-5 h-5 text-red-500" />
           New Chat
