@@ -26,19 +26,19 @@ interface ChartRendererProps {
   }
 }
 
-// Professional color palette - Navy, Red, Gray variations
+// Minimalist black, white, red color palette
 const COLORS = [
-  "#1e3a8a", // Professional Navy
-  "#dc2626", // Accent Red
-  "#64748b", // Professional Gray
-  "#94a3b8", // Light Gray-Blue
-  "#0f172a", // Deep Navy
-  "#475569", // Mid Gray
-  "#ef4444", // Bright Red
-  "#374151", // Charcoal
+  "#000000", // Pure Black
+  "#dc2626", // Pure Red
+  "#666666", // Dark Gray
+  "#999999", // Mid Gray
+  "#cccccc", // Light Gray
+  "#e60000", // Bright Red
+  "#333333", // Charcoal
+  "#b91c1c", // Dark Red
 ]
 
-// Professional chart theme
+// Minimalist chart theme
 const CHART_THEME = {
   fontSize: 12,
   fontFamily: "Inter, Helvetica Neue, Helvetica, Arial, sans-serif",
