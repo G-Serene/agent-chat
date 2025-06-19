@@ -56,7 +56,7 @@ export function Sidebar({
           onClick={onNewChat}
           className="w-full justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 dark:bg-slate-600 dark:hover:bg-slate-700"
         >
-          <PlusCircle className="w-5 h-5 text-green-400" />
+          <PlusCircle className="w-5 h-5 text-red-500" />
           New Chat
         </Button>
       </div>
@@ -97,7 +97,7 @@ export function Sidebar({
                         className={cn(
                           "w-4 h-4",
                           session.id === currentSessionId
-                            ? "text-blue-600 dark:text-blue-400"
+                            ? "text-red-600 dark:text-red-400"
                             : "text-muted-foreground",
                         )}
                       />
@@ -175,7 +175,7 @@ export function Sidebar({
             variant="ghost"
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg"
           >
-            <HelpCircle className="w-5 h-5 text-green-500" />
+            <HelpCircle className="w-5 h-5 text-red-500" />
             Help & Support
           </Button>
         </div>

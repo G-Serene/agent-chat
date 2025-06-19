@@ -17,10 +17,10 @@ export function MicrosoftLogo({ size = 24, className, ...props }: MicrosoftLogoP
       className={className}
       {...props}
     >
-      <rect x="1" y="1" width="10" height="10" fill="#FF4444"/>
-      <rect x="13" y="1" width="10" height="10" fill="#00DD00"/>
-      <rect x="1" y="13" width="10" height="10" fill="#0099FF"/>
-      <rect x="13" y="13" width="10" height="10" fill="#FFD700"/>
+      <rect x="1" y="1" width="10" height="10" fill="#ef4444" stroke="currentColor" strokeWidth="0.5"/>
+      <rect x="13" y="1" width="10" height="10" fill="currentColor"/>
+      <rect x="1" y="13" width="10" height="10" fill="currentColor"/>
+      <rect x="13" y="13" width="10" height="10" fill="#ef4444" stroke="currentColor" strokeWidth="0.5"/>
     </svg>
   )
 }

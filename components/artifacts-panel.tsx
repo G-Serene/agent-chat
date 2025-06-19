@@ -126,7 +126,7 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-500" />
+          <FileText className="w-5 h-5 text-red-500" />
           <h2 className="text-lg font-semibold tracking-tight text-foreground">Artifacts</h2>
           {totalArtifacts > 0 && (
             <Badge variant="secondary" className="ml-2 text-sm px-2 py-0.5">
@@ -186,7 +186,7 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                         <CardHeader className="pb-3 bg-gradient-to-r from-slate-50 to-slate-100">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-800">
-                              <Code className="w-5 h-5 text-blue-500" />
+                              <Code className="w-5 h-5 text-red-500" />
                               {block.title}
                             </CardTitle>
                             <div className="flex gap-1">

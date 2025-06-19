@@ -173,7 +173,7 @@ export const MessageBubble = memo(function MessageBubble({
               >
                 <div className="flex items-center justify-between gap-2 mb-1">
                   <div className="flex items-center gap-2">
-                    <Wrench className="w-4 h-4 text-blue-500" />
+                    <Wrench className="w-4 h-4 text-red-500" />
                     <span className="font-semibold text-sm">Tool: {toolInvocation.toolName}</span>
                   </div>
                   <Button
@@ -182,7 +182,7 @@ export const MessageBubble = memo(function MessageBubble({
                     onClick={handleViewArtifacts}
                     className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                   >
-                    <ExternalLink className="w-3 h-3 mr-1 text-blue-500" />
+                    <ExternalLink className="w-3 h-3 mr-1 text-red-500" />
                     View Details
                   </Button>
                 </div>
@@ -213,14 +213,14 @@ export const MessageBubble = memo(function MessageBubble({
             className="absolute -top-2 -right-2 h-7 w-7 text-xs opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground bg-card border"
             onClick={handleCopy}
           >
-            {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
+            {copied ? <Check className="w-3 h-3 text-red-500" /> : <Copy className="w-3 h-3" />}
           </Button>
         )}
 
         {/* Artifact Notification */}
         {showArtifactNotification && !isUser && (
-          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950 dark:border-blue-800 animate-in fade-in-0 slide-in-from-top-2 duration-300">
-            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+          <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg dark:bg-red-950 dark:border-red-800 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2 text-red-700 dark:text-red-300">
               {messageContent.includes("```chart") || messageContent.includes('"chartType"') ? (
                 <>
                   <BarChart3 className="w-4 h-4" />
@@ -240,7 +240,7 @@ export const MessageBubble = memo(function MessageBubble({
                 variant="ghost"
                 size="sm"
                 onClick={handleViewArtifacts}
-                className="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 p-0 h-auto"
+                className="text-xs text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-200 p-0 h-auto"
               >
                 <ExternalLink className="w-3 h-3 mr-1" />
                 View Details

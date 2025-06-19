@@ -85,8 +85,8 @@ export function ChatInterface({
         ) : (
           <ScrollArea className="h-full">
             <div className="flex flex-col items-center justify-center min-h-full p-8 text-center">
-              <div className="p-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl mb-6 shadow-lg">
-                <Sparkles className="w-12 h-12 text-blue-500" />
+              <div className="p-4 bg-gradient-to-br from-muted to-muted/50 rounded-sm mb-6 shadow-lg">
+                <Sparkles className="w-12 h-12 text-red-500" />
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">Welcome to Agent Chat!</h2>
               <p className="text-muted-foreground mb-8 max-w-md text-lg">

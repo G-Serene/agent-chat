@@ -101,7 +101,7 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
     return (
       <div className="w-full bg-white dark:bg-gray-900 p-8 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-gray-400">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-red-500" />
           <span className="text-sm font-medium">Rendering chart...</span>
         </div>
       </div>
@@ -130,9 +130,9 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
             {rawContent}
           </pre>
         </details>
-        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded">
-          <p className="text-green-700 dark:text-green-400 font-medium text-xs mb-1">✅ Corrected version:</p>
-          <pre className="text-green-800 dark:text-green-300 text-xs font-mono whitespace-pre-wrap">
+        <div className="mt-3 p-2 bg-muted border border-border rounded-sm">
+          <p className="text-foreground font-medium text-xs mb-1">✅ Corrected version:</p>
+          <pre className="text-muted-foreground text-xs font-mono whitespace-pre-wrap">
             {`{
   "chartType": "pie",
   "data": [

@@ -166,7 +166,7 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
           {/* Appearance Section */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Palette className="w-4 h-4 text-blue-500" />
+              <Palette className="w-4 h-4 text-red-500" />
               <h3 className="text-lg font-semibold">Appearance</h3>
             </div>
 
@@ -223,7 +223,7 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
           {/* Chat Settings */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-green-500" />
+              <MessageSquare className="w-4 h-4 text-red-500" />
               <h3 className="text-lg font-semibold">Chat Settings</h3>
             </div>
 
@@ -251,7 +251,7 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
           {/* Data Management */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-purple-500" />
+              <Database className="w-4 h-4 text-red-500" />
               <h3 className="text-lg font-semibold">Data Management</h3>
             </div>
 
@@ -327,7 +327,7 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
           {/* Privacy & Security */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-orange-500" />
+              <Shield className="w-4 h-4 text-red-500" />
               <h3 className="text-lg font-semibold">Privacy & Security</h3>
             </div>
 
