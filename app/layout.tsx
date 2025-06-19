@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthSessionProvider } from "@/components/auth/session-provider"
+import { MCPProvider } from "@/components/mcp/mcp-provider"
 import { Toaster } from "sonner"
 
 const inter = Inter({ 
@@ -28,8 +29,10 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased font-sans`}>
         <AuthSessionProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-            <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white transition-colors">{children}</div>
-            <Toaster />
+            <MCPProvider>
+              <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white transition-colors">{children}</div>
+              <Toaster />
+            </MCPProvider>
           </ThemeProvider>
         </AuthSessionProvider>
       </body>

@@ -9,10 +9,14 @@ import { ArtifactWindow } from "@/components/artifact-window"
 import { UserMenu } from "@/components/auth/user-menu"
 import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
-import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
+import { PanelLeftOpen, PanelLeftClose, LayoutGrid, Settings, Wrench } from "lucide-react"
 import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
 import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
+import { useMCP } from "@/components/mcp/mcp-provider"
+import { MCPStatus } from "@/components/mcp/mcp-status"
+import { MCPToolSelector } from "@/components/mcp/tool-selector"
+import { MCPResourceBrowser } from "@/components/mcp/resource-browser"
 
 export default function ChatPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -24,14 +28,20 @@ export default function ChatPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
 
+  // MCP integration
+  const mcp = useMCP()
+
 
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
-    api: "/api/chat",
+    api: mcp.isConnected ? "/api/chat-mcp" : "/api/chat",
     id: currentSessionId,
     key: chatComponentKey.toString(),
     body: {
       session_id: currentSessionId,
+      mcp_enabled: mcp.isConnected,
+      selected_tools: mcp.selectedTools,
+      selected_resources: mcp.selectedResources
     },
     initialMessages: [],
     onError: (err) => {
@@ -272,6 +282,30 @@ export default function ChatPage() {
               />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* MCP Tool Selector */}
+              <MCPToolSelector
+                selectedTools={mcp.selectedTools}
+                onSelectionChange={mcp.setSelectedTools}
+              >
+                <Button variant="outline" size="sm">
+                  <Wrench className="h-4 w-4 mr-2" />
+                  Tools ({mcp.selectedTools.length})
+                </Button>
+              </MCPToolSelector>
+
+              {/* MCP Resource Browser */}
+              <MCPResourceBrowser
+                selectedResources={mcp.selectedResources}
+                onSelectionChange={mcp.setSelectedResources}
+              />
+
+              {/* MCP Status */}
+              <MCPStatus
+                onRefresh={mcp.refreshConnections}
+                className="w-80"
+              />
+
+              {/* Artifacts Toggle */}
               <UserMenu currentSessionId={currentSessionId} />
               {allArtifacts.length > 0 && (
                 <Button
