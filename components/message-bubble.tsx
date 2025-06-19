@@ -10,7 +10,7 @@ import ReactMarkdown from "react-markdown"
 import { useState, memo, useMemo, useEffect } from "react"
 import { toast } from "sonner"
 import { detectArtifacts } from "@/lib/artifact-detector"
-import { StreamingText } from "@/components/streaming-text"
+import { HighPerformanceStreamingText as StreamingText } from "@/components/high-performance-streaming-text"
 import { AIAssistantIcon } from "@/components/ai-assistant-icon"
 
 interface MessageBubbleProps {
@@ -39,31 +39,19 @@ export const MessageBubble = memo(function MessageBubble({
   // Extract content using AI SDK standard approach
   const messageContent = message.content || ""
 
-  // Debug logging
-  console.log("MessageBubble render:", {
-    messageId: message.id,
-    isStreaming,
-    isLastMessage,
-    isUser,
-    contentLength: messageContent.length,
-    content: messageContent.slice(0, 50) + "...",
-  })
-
+  // Memoize expensive operations
+  const contentWithoutCodeBlocks = useMemo(() => removeCodeBlocks(messageContent), [messageContent])
+  const artifacts = useMemo(() => {
+    // Only detect artifacts when not streaming to avoid unnecessary recalculations
+    if (isStreaming) return []
+    return detectArtifacts(messageContent, message.id)
+  }, [messageContent, message.id, isStreaming])
   // For non-streaming messages, filter code blocks for display
-  const displayContent = isStreaming && isLastMessage && !isUser ? messageContent : removeCodeBlocks(messageContent)
-
-  // Only detect artifacts for completed messages
-  const messageArtifacts = useMemo(
-    () =>
-      message.role === "assistant" && messageContent && !isStreaming
-        ? detectArtifacts(messageContent, message.id)
-        : [],
-    [message.role, messageContent, message.id, isStreaming],
-  )
+  const displayContent = isStreaming && isLastMessage && !isUser ? messageContent : contentWithoutCodeBlocks
 
   // Show artifact notification after streaming completes
   useEffect(() => {
-    if (!isStreaming && messageArtifacts.length > 0 && !isUser) {
+    if (!isStreaming && artifacts.length > 0 && !isUser) {
       const timer = setTimeout(() => {
         setShowArtifactNotification(true)
       }, 500)
@@ -71,7 +59,7 @@ export const MessageBubble = memo(function MessageBubble({
     } else {
       setShowArtifactNotification(false)
     }
-  }, [isStreaming, messageArtifacts.length, isUser])
+  }, [isStreaming, artifacts.length, isUser])
 
   // Determine if this message should stream
   const shouldStream = !isUser && isStreaming && isLastMessage && messageContent.length > 0
@@ -99,65 +87,70 @@ export const MessageBubble = memo(function MessageBubble({
         console.error("Failed to copy text: ", err)
       })
   }
-
   const handleViewArtifacts = () => {
-    if (messageArtifacts.length > 0) {
-      onArtifactToggle(messageArtifacts[0].id)
+    if (artifacts.length > 0) {
+      onArtifactToggle(artifacts[0].id)
     } else {
       onArtifactToggle()
     }
-  }
-
-  // Standard markdown components
-  const markdownComponents = {
-    code({ node, inline, className, children, ...props }: any) {
+  }  // Standard markdown components with zero spacing
+  const markdownComponents = {    code({ node, inline, className, children, ...props }: any) {
       if (inline) {
         return (
-          <code className="font-mono bg-muted px-1 py-0.5 rounded text-sm" {...props}>
+          <code className="font-mono bg-muted px-1 py-0.5 rounded text-sm break-all overflow-wrap-anywhere word-break-break-word max-w-full" {...props}>
             {children}
           </code>
         )
       }
       return null
-    },
-    pre: () => null,
-    p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2" {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2" {...props} />,
-    li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
+    },    pre: () => null,    p: ({ node, ...props }: any) => <p className="mb-1 last:mb-0 leading-normal" {...props} />,    ul: ({ node, ...props }: any) => (
+      <ul className="mb-1 space-y-0" style={{ paddingLeft: '1.5rem', listStyleType: 'disc', listStylePosition: 'outside' }} {...props} />
+    ),
+    ol: ({ node, ...props }: any) => (
+      <ol className="mb-1 space-y-0" style={{ paddingLeft: '1.5rem', listStyleType: 'decimal', listStylePosition: 'outside' }} {...props} />
+    ),
+    li: ({ node, ...props }: any) => (
+      <li className="leading-normal break-words" style={{ display: 'list-item' }} {...props} />
+    ),
     strong: ({ node, ...props }: any) => <strong className="font-semibold" {...props} />,
     em: ({ node, ...props }: any) => <em className="italic" {...props} />,
+    br: () => <br />,
+    h1: ({ node, ...props }: any) => <div className="font-bold text-lg leading-tight" {...props} />,
+    h2: ({ node, ...props }: any) => <div className="font-bold text-base leading-tight" {...props} />,
+    h3: ({ node, ...props }: any) => <div className="font-semibold text-base leading-tight" {...props} />,
+    h4: ({ node, ...props }: any) => <div className="font-semibold leading-tight" {...props} />,
+    h5: ({ node, ...props }: any) => <div className="font-medium leading-tight" {...props} />,
+    h6: ({ node, ...props }: any) => <div className="font-medium leading-tight" {...props} />,
   }
 
   // Don't render empty messages
   if (!messageContent && !hasToolInvocations) {
     return null
-  }
-
-  return (
-    <div className={cn("flex w-full gap-3", isUser ? "justify-end" : "justify-start")}>
+  }  return (
+    <div className={cn("flex w-full max-w-full gap-3 text-wrap-responsive break-words overflow-wrap-anywhere", isUser ? "justify-end" : "justify-start")}>
       {!isUser && (
-        <div className="w-9 h-9 mt-1 flex items-center justify-center">
+        <div className="w-9 h-9 mt-1 flex items-center justify-center flex-shrink-0">
           <AIAssistantIcon size={24} />
         </div>
-      )}
-
-      <div className={cn("flex flex-col gap-1 w-full", isUser ? "items-end" : "items-start")}>
-        <div
+      )}      <div className={cn("flex flex-col gap-1 min-w-0 text-wrap-responsive", isUser ? "items-end max-w-[min(80%,600px)] ml-auto" : "items-start max-w-[min(90%,800px)] mr-auto")}>        <div
           className={cn(
-            "relative group rounded-2xl px-4 py-3 shadow-md max-w-xl lg:max-w-2xl xl:max-w-3xl break-words",
-            isUser ? "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-br-none" : "bg-card text-card-foreground border rounded-bl-none",
+            "relative group min-w-0 text-wrap-responsive",
+            "break-words overflow-wrap-anywhere hyphens-auto word-break-break-word",
+            isUser 
+              ? "bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-100 rounded-2xl px-4 py-3 shadow-sm rounded-br-none" 
+              : "bg-transparent text-foreground py-1", // Minimal padding for agent
           )}
         >
           {/* Message Content */}
-          {shouldStream ? (
-            <StreamingText
+          {shouldStream ? (            <StreamingText
               content={messageContent}
               isStreaming={true}
-              className={cn("prose prose-sm max-w-none", isUser ? "text-gray-900" : "dark:prose-invert")}
-            />
-          ) : (
-            <div className="prose prose-sm max-w-none dark:prose-invert">
+              className={cn(
+                "max-w-none text-wrap-responsive w-full [&>*]:mb-1 [&>*:last-child]:mb-0", 
+                "break-words overflow-wrap-anywhere word-break-break-word hyphens-auto",
+                isUser ? "text-gray-900 dark:text-gray-100" : "text-foreground"
+              )}
+            />) : (            <div className="w-full max-w-none text-wrap-responsive break-words overflow-wrap-anywhere word-break-break-word hyphens-auto [&>*]:mb-1 [&>*:last-child]:mb-0 [&_p]:mb-1 [&_p:last-child]:mb-0 [&_ul]:mb-1 [&_ol]:mb-1 [&_li]:mb-0">
               <ReactMarkdown components={markdownComponents}>{displayContent}</ReactMarkdown>
             </div>
           )}
@@ -228,9 +221,8 @@ export const MessageBubble = memo(function MessageBubble({
                 </>
               ) : (
                 <>
-                  <Code className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    {messageArtifacts.length} artifact{messageArtifacts.length > 1 ? "s" : ""} created
+                  <Code className="w-4 h-4" />                  <span className="text-sm font-medium">
+                    {artifacts.length} artifact{artifacts.length > 1 ? "s" : ""} created
                   </span>
                 </>
               )}
@@ -253,10 +245,8 @@ export const MessageBubble = memo(function MessageBubble({
         <div className="text-xs text-muted-foreground px-1">
           {new Date(message.createdAt || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
-      </div>
-
-      {isUser && (
-        <Avatar className="w-9 h-9 mt-1 shadow-sm">
+      </div>      {isUser && (
+        <Avatar className="w-9 h-9 mt-1 shadow-sm flex-shrink-0">
           <AvatarFallback className="bg-slate-100 text-slate-600">
             <User className="w-5 h-5" />
           </AvatarFallback>

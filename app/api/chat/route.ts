@@ -52,10 +52,9 @@ export async function POST(req: Request) {
       const errorText = await response.text()
       console.error("❌ Backend Error Response:", errorText)
       throw new Error(`Backend error: ${response.status} - ${response.statusText}`)
-    }
-
-    // Create a transform stream to convert SSE to AI SDK format with word-by-word streaming
+    }    // Create a transform stream to convert SSE to AI SDK format with smooth word-by-word streaming
     let streamFinished = false
+    let textBuffer = ""
     
     const transformStream = new TransformStream({
       transform(chunk, controller) {
@@ -78,6 +77,15 @@ export async function POST(req: Request) {
               console.log("✅ Stream completed with [DONE] signal")
               if (!streamFinished) {
                 streamFinished = true
+                // Send any remaining buffered text
+                if (textBuffer.trim()) {
+                  const remainingChunk = `0:${JSON.stringify(textBuffer)}\n`
+                  try {
+                    controller.enqueue(new TextEncoder().encode(remainingChunk))
+                  } catch (error) {
+                    console.warn("Controller already closed:", error)
+                  }
+                }
                 // Send proper finish message format for AI SDK
                 const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
                 try {
@@ -97,14 +105,25 @@ export async function POST(req: Request) {
                 const content = data.choices[0].delta.content
                 console.log("📤 Extracted content:", content)
 
-                // Pass through content as-is, chunk by chunk
-                if (content.length > 0 && !streamFinished) {
-                  const aiSdkChunk = `0:${JSON.stringify(content)}\n`
-                  try {
-                    controller.enqueue(new TextEncoder().encode(aiSdkChunk))
-                  } catch (error) {
-                    console.warn("Controller already closed while enqueueing content:", error)
-                    streamFinished = true
+                // Add to buffer for smooth streaming
+                textBuffer += content
+
+                // Stream word by word for smoother experience
+                const words = textBuffer.split(/(\s+)/)
+                
+                // Keep the last incomplete word in buffer
+                if (words.length > 1) {
+                  const wordsToSend = words.slice(0, -1).join('')
+                  textBuffer = words[words.length - 1] || ''
+                  
+                  if (wordsToSend.length > 0 && !streamFinished) {
+                    const aiSdkChunk = `0:${JSON.stringify(wordsToSend)}\n`
+                    try {
+                      controller.enqueue(new TextEncoder().encode(aiSdkChunk))
+                    } catch (error) {
+                      console.warn("Controller already closed while enqueueing content:", error)
+                      streamFinished = true
+                    }
                   }
                 }
               }
@@ -113,6 +132,15 @@ export async function POST(req: Request) {
               if (data.choices && data.choices[0] && data.choices[0].finish_reason && !streamFinished) {
                 console.log("✅ Stream finished with reason:", data.choices[0].finish_reason)
                 streamFinished = true
+                // Send any remaining buffered text
+                if (textBuffer.trim()) {
+                  const remainingChunk = `0:${JSON.stringify(textBuffer)}\n`
+                  try {
+                    controller.enqueue(new TextEncoder().encode(remainingChunk))
+                  } catch (error) {
+                    console.warn("Controller already closed:", error)
+                  }
+                }
                 // Send proper finish message format for AI SDK
                 const finishChunk = `e:{"finishReason":"${data.choices[0].finish_reason}","usage":{"promptTokens":0,"completionTokens":0}}\n`
                 try {

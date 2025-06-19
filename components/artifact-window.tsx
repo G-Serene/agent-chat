@@ -52,6 +52,7 @@ import type { ArtifactContent } from "@/lib/artifact-detector"
 import { ChartRenderer } from "./chart-renderer"
 import { TableRenderer } from "./table-renderer"
 import { ChatMessageMermaidRenderer } from "./chat-message-mermaid-renderer"
+import { useThrottledResize } from "@/hooks/use-resize-optimization"
 
 SyntaxHighlighter.registerLanguage("python", python)
 SyntaxHighlighter.registerLanguage("javascript", javascript)
@@ -79,6 +80,8 @@ interface ArtifactWindowProps {
   isOpen: boolean
   onClose: () => void
   onResize?: (width: number) => void
+  onResizeStart?: () => void
+  onResizeEnd?: () => void
   initialWidth?: number
   selectedArtifactId?: string
 }
@@ -88,6 +91,8 @@ export function ArtifactWindow({
   isOpen,
   onClose,
   onResize,
+  onResizeStart,
+  onResizeEnd,
   initialWidth = 400,
   selectedArtifactId,
 }: ArtifactWindowProps) {
@@ -102,6 +107,12 @@ export function ArtifactWindow({
 
   const minWidth = 350
   const maxWidth = typeof window !== "undefined" ? window.innerWidth * 0.8 : 1200
+
+  // Optimized resize callback with throttling
+  const throttledResize = useThrottledResize((newWidth: number) => {
+    setWidth(newWidth)
+    onResize?.(newWidth)
+  }, 3) // 3px threshold for smoother performance
 
   // Update current artifact when selectedArtifactId changes or artifacts change
   useEffect(() => {
@@ -122,31 +133,54 @@ export function ArtifactWindow({
       setCurrentArtifactIndex(artifacts.length - 1)
     }
   }, [artifacts.length, selectedArtifactId])
-
   useEffect(() => {
     setWidth(initialWidth)
   }, [initialWidth])
 
+  // Handle escape key to exit fullscreen
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isMaximized) {
+        setIsMaximized(false)
+      }
+    }
+
+    if (isMaximized) {
+      document.addEventListener('keydown', handleEscape)
+      // Prevent body scroll when maximized
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = ''
+    }
+  }, [isMaximized])
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     setIsResizing(true)
-  }, [])
+    onResizeStart?.()
+  }, [onResizeStart])
 
   const handleMouseUp = useCallback(() => {
     setIsResizing(false)
-  }, [])
-
+    onResizeEnd?.()
+  }, [onResizeEnd])
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       if (isResizing && containerRef.current) {
-        const containerRect = containerRef.current.getBoundingClientRect()
-        const newWidth = containerRect.right - e.clientX
+        // For relative positioned element, calculate from viewport edge
+        const newWidth = window.innerWidth - e.clientX
         const clampedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth))
-        setWidth(clampedWidth)
-        onResize?.(clampedWidth)
+        
+        // Use the throttled resize for smooth performance
+        throttledResize(clampedWidth)
       }
     },
-    [isResizing, onResize, minWidth, maxWidth],
+    [isResizing, minWidth, maxWidth, throttledResize],
   )
 
   useEffect(() => {
@@ -225,23 +259,36 @@ export function ArtifactWindow({
     return null
   }
 
-  return (
-    <div
+  return (    <div
       ref={containerRef}
       className={cn(
-        "fixed right-0 top-0 h-full bg-background border-l shadow-xl transition-all duration-300 ease-in-out z-50 flex flex-col",
-        isMaximized ? "w-full" : "",
+        "h-full bg-background border-l-2 shadow-lg flex-shrink-0 flex flex-col",
+        isMaximized && "fixed inset-0 z-50 border-l-0 bg-background/95 backdrop-blur-sm", // Full screen overlay when maximized
+        !isMaximized && (!isResizing && "transition-all duration-300 ease-in-out")
       )}
-      style={{ width: isMaximized ? "100%" : `${width}px` }}
+      style={{ 
+        width: isMaximized ? "100vw" : `${width}px`,
+        height: isMaximized ? "100vh" : "100%",
+        transform: 'translateZ(0)', // Hardware acceleration
+        willChange: isResizing ? 'width' : 'auto'
+      }}
     >
-      {!isMaximized && (
-        <div
+      {!isMaximized && (        <div
           ref={resizeHandleRef}
           onMouseDown={handleMouseDown}
-          className="absolute left-0 top-0 w-4 h-full cursor-col-resize bg-transparent hover:bg-blue-500/10 transition-colors z-50 flex items-center justify-center group"
+          className={cn(
+            "absolute left-0 top-0 w-4 h-full cursor-col-resize bg-transparent transition-colors flex items-center justify-center group",
+            isResizing ? "bg-blue-500/20 z-50" : "hover:bg-blue-500/10 z-40"
+          )}
         >
-          <div className="w-1 h-12 bg-border group-hover:bg-blue-500 transition-colors rounded-full" />
-          <GripVertical className="w-3 h-3 text-muted-foreground group-hover:text-blue-500 absolute" />
+          <div className={cn(
+            "w-1 h-12 bg-border transition-colors rounded-full",
+            isResizing ? "bg-blue-500" : "group-hover:bg-blue-500"
+          )} />
+          <GripVertical className={cn(
+            "w-3 h-3 text-muted-foreground absolute transition-colors",
+            isResizing ? "text-blue-500" : "group-hover:text-blue-500"
+          )} />
         </div>
       )}
 
