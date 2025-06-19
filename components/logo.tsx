@@ -1,7 +1,6 @@
 "use client"
 
 import { SVGProps } from "react"
-import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
 interface LogoProps extends SVGProps<SVGSVGElement> {
@@ -27,29 +26,19 @@ export function Logo({
   src,
   srcDark,
   alt = "Logo",
-  width = 160,
-  height = 32,
-  maxWidth = 200,
+  width = 200,
+  height = 40,
+  maxWidth = 250,
   fallbackText = "Agent Chat",
   showText = false,
   className,
   ...props 
 }: LogoProps) {
-  const { theme, resolvedTheme } = useTheme()
-  
-  // Determine which logo to use based on theme
-  const logoSrc = (() => {
-    if (!src) return null
-    
-    const isDark = resolvedTheme === 'dark' || theme === 'dark'
-    return isDark && srcDark ? srcDark : src
-  })()
-
   // If no src is provided, show fallback text
-  if (!logoSrc) {
+  if (!src) {
     return (
       <div className={cn("flex items-center", className)}>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           {fallbackText}
         </h1>
       </div>
@@ -58,25 +47,47 @@ export function Logo({
 
   return (
     <div className={cn("flex items-center gap-3", className)}>
+      {/* Light theme logo - hidden in dark mode */}
       <img
-        src={logoSrc}
+        src={src}
         alt={alt}
         width={width}
         height={height}
         style={{ maxWidth: `${maxWidth}px` }}
-        className="h-auto object-contain"
+        className="h-auto object-contain block dark:hidden"
         onError={(e) => {
           // If image fails to load, hide it and show fallback text
           e.currentTarget.style.display = 'none'
-          const fallback = e.currentTarget.nextSibling as HTMLElement
+          const fallback = e.currentTarget.parentElement?.querySelector('h1') as HTMLElement
           if (fallback) {
             fallback.style.display = 'block'
           }
         }}
       />
+      
+      {/* Dark theme logo - hidden in light mode */}
+      {srcDark && (
+        <img
+          src={srcDark}
+          alt={alt}
+          width={width}
+          height={height}
+          style={{ maxWidth: `${maxWidth}px` }}
+          className="h-auto object-contain hidden dark:block"
+          onError={(e) => {
+            // If image fails to load, hide it and show fallback text
+            e.currentTarget.style.display = 'none'
+            const fallback = e.currentTarget.parentElement?.querySelector('h1') as HTMLElement
+            if (fallback) {
+              fallback.style.display = 'block'
+            }
+          }}
+        />
+      )}
+      
       <h1 
         className={cn(
-          "text-2xl font-bold tracking-tight text-foreground",
+          "text-3xl font-bold tracking-tight text-foreground",
           !showText && "hidden"
         )}
         style={{ display: showText ? 'block' : 'none' }}

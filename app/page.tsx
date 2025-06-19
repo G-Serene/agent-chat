@@ -265,8 +265,8 @@ export default function ChatPage() {
                 src="/data-flow-logo.svg"
                 srcDark="/data-flow-logo-dark.svg"
                 alt="DataFlow Logo"
-                width={160}
-                height={32}
+                width={200}
+                height={40}
                 fallbackText="Agent Chat"
                 className="min-w-0 flex-1"
               />
