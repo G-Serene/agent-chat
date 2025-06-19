@@ -59,23 +59,7 @@ export default function AuthStatusPage() {
               </Badge>
             </div>
 
-            {session && (
-              <>
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Environment:</span>
-                  <Badge variant={session.environment === "development" ? "secondary" : "default"}>
-                    {session.environment}
-                  </Badge>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">SSO Enabled:</span>
-                  <Badge variant={session.ssoEnabled ? "default" : "secondary"}>
-                    {session.ssoEnabled ? "Yes" : "No"}
-                  </Badge>
-                </div>
-              </>
-            )}
           </CardContent>
         </Card>
 

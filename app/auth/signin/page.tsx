@@ -107,22 +107,6 @@ export default function SignInPage() {
               </Button>
             )}
           </div>
-
-          <div className="text-center text-sm text-muted-foreground">
-            {isDevelopment ? (
-              <>
-                Environment: <span className="font-semibold text-orange-600">Development</span>
-                <br />
-                SSO Status: <span className="font-semibold text-red-600">Disabled</span>
-              </>
-            ) : (
-              <>
-                Environment: <span className="font-semibold text-green-600">Production</span>
-                <br />
-                SSO Status: <span className="font-semibold text-green-600">Enabled</span>
-              </>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>
