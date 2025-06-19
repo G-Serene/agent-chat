@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import { MessageBubble } from "@/components/message-bubble"
 import { useEffect, useRef, useCallback } from "react"
 import { AnimatePresence, motion } from "framer-motion"

@@ -15,7 +15,11 @@ import { SignInButton } from "./sign-in-button"
 import { SignOutButton } from "./sign-out-button"
 import { User, Settings } from "lucide-react"
 
-export function UserMenu() {
+interface UserMenuProps {
+  currentSessionId?: string | null
+}
+
+export function UserMenu({ currentSessionId }: UserMenuProps) {
   const { data: session, status } = useSession()
 
   if (status === "loading") {
@@ -53,6 +57,11 @@ export function UserMenu() {
             <p className="text-xs leading-none text-muted-foreground">
               {session.user?.email}
             </p>
+            {currentSessionId && (
+              <p className="text-xs leading-none text-muted-foreground font-mono">
+                Session: {currentSessionId.slice(-8)}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />

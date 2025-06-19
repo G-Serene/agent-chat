@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import type { FormEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,24 +23,24 @@ interface ChatInterfaceProps {
 
 const quickPrompts = [
   {
+    title: "Discover data",
+    prompt: "Help me discover and explore data assets across Data Platform",
+    icon: <FileText className="w-4 h-4 mr-2 text-red-500" />,
+  },
+  {
     title: "Write code",
-    prompt: "Write a Python script to analyze data from a CSV file",
-    icon: <Code className="w-4 h-4 mr-2 text-blue-500" />,
+    prompt: "Write code to integrate with Data Platform APIs and services",
+    icon: <Code className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
-    title: "Create diagram",
-    prompt: "Create a flowchart showing a typical data processing pipeline",
-    icon: <BarChart3 className="w-4 h-4 mr-2 text-green-500" />,
-  },
-  {
-    title: "Analyze data",
-    prompt: "Help me analyze and visualize sales data trends",
-    icon: <FileText className="w-4 h-4 mr-2 text-purple-500" />,
+    title: "Create chart",
+    prompt: "Generate interactive charts and visualizations from my data",
+    icon: <BarChart3 className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
     title: "What can you do?",
     prompt: "What are your capabilities and how can you help me?",
-    icon: <Sparkles className="w-4 h-4 mr-2 text-orange-500" />,
+    icon: <Sparkles className="w-4 h-4 mr-2 text-red-500" />,
   },
 ]
 
@@ -59,7 +59,7 @@ export function ChatInterface({
     (messages.length === 1 &&
       messages[0].role !== "assistant" &&
       messages[0].content !==
-        "Hello! I'm your AI Agent assistant. I can help you with code, analysis, diagrams, and various tasks. What would you like to work on today?")
+        "What would you like to work on today?")
 
   const handlePromptClick = (prompt: string) => {
     const syntheticEvent = {
@@ -85,13 +85,12 @@ export function ChatInterface({
         ) : (
           <ScrollArea className="h-full">
             <div className="flex flex-col items-center justify-center min-h-full p-8 text-center">
-              <div className="p-4 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl mb-6 shadow-lg">
-                <Sparkles className="w-12 h-12 text-blue-500" />
+              <div className="p-4 bg-gradient-to-br from-muted to-muted/50 rounded-sm mb-6 shadow-lg">
+                <Sparkles className="w-12 h-12 text-red-500" />
               </div>
               <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">Welcome to Agent Chat!</h2>
               <p className="text-muted-foreground mb-8 max-w-md text-lg">
-                I'm your AI agent assistant. I can help with code, analysis, diagrams, and much more. What would you
-                like to explore?
+                What would you like to explore?
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
                 {quickPrompts.map((item) => (
@@ -134,8 +133,8 @@ export function ChatInterface({
           <Textarea
             value={input}
             onChange={handleInputChange}
-            placeholder="Ask me to write code, create diagrams, analyze data, or anything else..."
-            className="min-h-[48px] max-h-40 resize-none pr-16 border-input focus:ring-2 focus:ring-slate-400 shadow-sm text-base"
+            placeholder="Ask me to analyze data, write code, create charts, or anything else..."
+            className="min-h-[48px] max-h-40 resize-none pr-16 border-input focus:ring-2 focus:ring-black shadow-sm text-base"
             rows={1}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {

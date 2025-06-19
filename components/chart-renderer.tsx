@@ -26,27 +26,28 @@ interface ChartRendererProps {
   }
 }
 
-// Professional color palette
+// Minimalist black, white, red color palette
 const COLORS = [
-  "#3b82f6", // Blue
-  "#10b981", // Emerald
-  "#f59e0b", // Amber
-  "#ef4444", // Red
-  "#8b5cf6", // Violet
-  "#06b6d4", // Cyan
-  "#84cc16", // Lime
-  "#f97316", // Orange
+  "#000000", // Pure Black
+  "#dc2626", // Pure Red
+  "#666666", // Dark Gray
+  "#999999", // Mid Gray
+  "#cccccc", // Light Gray
+  "#e60000", // Bright Red
+  "#333333", // Charcoal
+  "#b91c1c", // Dark Red
 ]
 
-// Professional chart theme
+// Minimalist chart theme
 const CHART_THEME = {
   fontSize: 12,
-  fontFamily: "system-ui, -apple-system, sans-serif",
+  fontFamily: "Inter, Helvetica Neue, Helvetica, Arial, sans-serif",
   colors: {
-    text: "#374151", // Gray-700
-    textLight: "#6b7280", // Gray-500
-    grid: "#e5e7eb", // Gray-200
-    background: "#ffffff",
+    text: "#1e3a8a", // Professional Navy
+    textLight: "#64748b", // Professional Gray
+    grid: "#e2e8f0", // Light Blue-Gray
+    background: "#ffffff", // Pure White
+    accent: "#dc2626", // Accent Red
   },
 }
 
@@ -100,7 +101,7 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
     return (
       <div className="w-full bg-white dark:bg-gray-900 p-8 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-gray-400">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-red-500" />
           <span className="text-sm font-medium">Rendering chart...</span>
         </div>
       </div>
@@ -129,9 +130,9 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
             {rawContent}
           </pre>
         </details>
-        <div className="mt-3 p-2 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded">
-          <p className="text-green-700 dark:text-green-400 font-medium text-xs mb-1">✅ Corrected version:</p>
-          <pre className="text-green-800 dark:text-green-300 text-xs font-mono whitespace-pre-wrap">
+        <div className="mt-3 p-2 bg-muted border border-border rounded-sm">
+          <p className="text-foreground font-medium text-xs mb-1">✅ Corrected version:</p>
+          <pre className="text-muted-foreground text-xs font-mono whitespace-pre-wrap">
             {`{
   "chartType": "pie",
   "data": [

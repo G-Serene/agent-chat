@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "ai"
+import type { Message } from "@ai-sdk/ui-utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -126,7 +126,7 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b sticky top-0 bg-background/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-2">
-          <FileText className="w-5 h-5 text-blue-500" />
+          <FileText className="w-5 h-5 text-red-500" />
           <h2 className="text-lg font-semibold tracking-tight text-foreground">Artifacts</h2>
           {totalArtifacts > 0 && (
             <Badge variant="secondary" className="ml-2 text-sm px-2 py-0.5">
@@ -186,7 +186,7 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                         <CardHeader className="pb-3 bg-gradient-to-r from-slate-50 to-slate-100">
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-800">
-                              <Code className="w-5 h-5 text-blue-500" />
+                              <Code className="w-5 h-5 text-red-500" />
                               {block.title}
                             </CardTitle>
                             <div className="flex gap-1">
@@ -372,14 +372,14 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                               </pre>
                             </div>
                           )}
-                          {invocation.result && (
+                          {invocation.state === "result" && (invocation as any).result && (
                             <div>
                               <h4 className="font-medium mb-2">Result:</h4>
                               <div className="p-3 bg-green-50 rounded-lg border border-green-200">
                                 <p className="text-sm text-green-700">
-                                  {typeof invocation.result === "string"
-                                    ? invocation.result
-                                    : JSON.stringify(invocation.result, null, 2)}
+                                  {typeof (invocation as any).result === "string"
+                                    ? (invocation as any).result
+                                    : JSON.stringify((invocation as any).result, null, 2)}
                                 </p>
                               </div>
                             </div>

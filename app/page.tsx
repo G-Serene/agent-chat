@@ -7,9 +7,10 @@ import { ChatInterface } from "@/components/chat-interface"
 import { Sidebar } from "@/components/sidebar"
 import { ArtifactWindow } from "@/components/artifact-window"
 import { UserMenu } from "@/components/auth/user-menu"
+import { Logo } from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
-import { Toaster, toast } from "sonner"
+import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
 import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
 
@@ -23,18 +24,7 @@ export default function ChatPage() {
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
 
-  // Define initial messages structure using a memoized function based on session ID
-  const getInitialMessagesForSession = useCallback(
-    (sessionId: string): Message[] => [
-      {
-        id: `initial-message-${sessionId || Date.now()}`,
-        role: "assistant" as const,
-        content:
-          "Hello! I'm your AI Agent assistant. I can help you with code, analysis, diagrams, and various tasks. What would you like to work on today?",
-      },
-    ],
-    [],
-  )
+
 
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
@@ -43,7 +33,7 @@ export default function ChatPage() {
     body: {
       session_id: currentSessionId,
     },
-    initialMessages: currentSessionId ? getInitialMessagesForSession(currentSessionId) : [],
+    initialMessages: [],
     onError: (err) => {
       console.error("❌ Chat error:", err)
       toast.error("An error occurred", { description: err.message })
@@ -96,25 +86,19 @@ export default function ChatPage() {
         setMessages(session.messages)
       } else {
         console.log("🆕 Initializing new or empty session:", currentSessionId)
-        setMessages(getInitialMessagesForSession(currentSessionId))
+        setMessages([])
       }
       ChatStorage.setCurrentSessionId(currentSessionId)
     }
-  }, [currentSessionId, chatComponentKey, setMessages, getInitialMessagesForSession])
+  }, [currentSessionId, chatComponentKey, setMessages])
 
   // Save messages to storage
   useEffect(() => {
     if (currentSessionId && messages && messages.length > 0) {
-      const isOnlyInitialPlaceholder = messages.length === 1 && messages[0].id.startsWith("initial-message-")
-      if (
-        !isOnlyInitialPlaceholder ||
-        messages[0].content !== getInitialMessagesForSession(currentSessionId)[0].content
-      ) {
-        ChatStorage.saveSession(currentSessionId, messages)
-        setChatSessions(ChatStorage.getSessionSummaries())
-      }
+      ChatStorage.saveSession(currentSessionId, messages)
+      setChatSessions(ChatStorage.getSessionSummaries())
     }
-  }, [messages, currentSessionId, getInitialMessagesForSession])
+  }, [messages, currentSessionId])
 
   // Calculate default artifact window width
   useEffect(() => {
@@ -217,8 +201,7 @@ export default function ChatPage() {
 
   return (
     <>
-      <Toaster richColors position="top-right" />
-      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-background to-slate-50 dark:from-slate-950 dark:via-background dark:to-slate-950 relative overflow-hidden">
+      <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">
         {sidebarOpen && (
           <div
             className="overflow-hidden border-r bg-background/80 backdrop-blur-md shadow-sm z-40 flex-shrink-0 transition-all duration-300 ease-in-out relative"
@@ -235,7 +218,7 @@ export default function ChatPage() {
 
             {/* Resize Handle */}
             <div
-              className="absolute top-0 right-0 w-1 h-full bg-border hover:bg-blue-500 cursor-col-resize transition-colors duration-200 group"
+              className="absolute top-0 right-0 w-1 h-full bg-border hover:bg-accent cursor-col-resize transition-colors duration-200 group"
               onMouseDown={(e) => {
                 e.preventDefault()
                 const startX = e.clientX
@@ -259,7 +242,7 @@ export default function ChatPage() {
                 document.body.style.userSelect = "none"
               }}
             >
-              <div className="absolute inset-y-0 -right-1 w-3 group-hover:bg-blue-500/20" />
+              <div className="absolute inset-y-0 -right-1 w-3 group-hover:bg-accent/20" />
             </div>
           </div>
         )}
@@ -268,38 +251,39 @@ export default function ChatPage() {
           className="flex flex-col min-w-0 transition-all duration-300 ease-in-out flex-grow"
           style={{ width: chatWidth }}
         >
-          <header className="flex items-center justify-between p-3 border-b bg-background/80 backdrop-blur-md shadow-sm z-30">
+          <header className="flex items-center justify-between p-3 border-b bg-background/90 backdrop-blur-md shadow-sm z-30 border-blue-100 dark:border-blue-900/50">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 flex-shrink-0"
               >
                 {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </Button>
-              <h1 className="text-2xl font-bold tracking-tight text-foreground truncate">
-                Agent Chat
-              </h1>
+              <Logo 
+                src="/data-flow-logo.svg"
+                srcDark="/data-flow-logo-dark.svg"
+                alt="DataFlow Logo"
+                width={200}
+                height={40}
+                fallbackText="Agent Chat"
+                className="min-w-0 flex-1"
+              />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
-              <UserMenu />
-              {currentSessionId && (
-                <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded font-mono">
-                  Session: {currentSessionId.slice(-8)}
-                </div>
-              )}
+              <UserMenu currentSessionId={currentSessionId} />
               {allArtifacts.length > 0 && (
                 <Button
                   variant={artifactsOpen ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handleArtifactToggle()}
-                  className="relative text-muted-foreground hover:text-foreground"
+                  className="relative text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
-                  <LayoutGrid className="h-4 w-4 text-blue-500 mr-2" />
+                  <LayoutGrid className="h-4 w-4 text-accent mr-2" />
                   Artifacts ({allArtifacts.length})
                   {!artifactsOpen && (
-                    <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-blue-500 ring-2 ring-background" />
+                    <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-accent ring-2 ring-background" />
                   )}
                 </Button>
               )}

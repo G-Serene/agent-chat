@@ -68,7 +68,7 @@ export function TypewriterText({
   return (
     <span className={className}>
       {displayedText}
-      {isAnimating && <span className="animate-pulse text-blue-500">|</span>}
+      {isAnimating && <span className="animate-pulse text-red-500">|</span>}
     </span>
   )
 }

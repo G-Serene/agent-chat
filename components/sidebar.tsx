@@ -49,14 +49,14 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       {/* Header / New Chat */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-sidebar-border">
         <Button
           onClick={onNewChat}
-          className="w-full justify-center gap-2 bg-slate-700 hover:bg-slate-800 text-white text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 dark:bg-slate-600 dark:hover:bg-slate-700"
+          className="w-full justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
         >
-          <PlusCircle className="w-5 h-5 text-green-400" />
+          <PlusCircle className="w-5 h-5 text-red-500" />
           New Chat
         </Button>
       </div>
@@ -76,7 +76,7 @@ export function Sidebar({
                 key={session.id}
                 className={cn(
                   "group relative rounded-lg transition-colors duration-150",
-                  session.id === currentSessionId ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-muted/80",
+                  session.id === currentSessionId ? "bg-red-50 dark:bg-red-900/20" : "hover:bg-muted/80",
                 )}
               >
                 <Button
@@ -84,20 +84,20 @@ export function Sidebar({
                   className={cn(
                     "w-full justify-start gap-3 h-auto p-3 text-left rounded-lg transition-colors duration-150",
                     session.id === currentSessionId
-                      ? "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                      ? "bg-red-50 text-red-900 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-100 dark:hover:bg-red-800/30"
                       : "hover:bg-muted/80",
                   )}
                   onClick={() => onSessionSelect(session.id)}
                 >
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarFallback
-                      className={cn(session.id === currentSessionId ? "bg-slate-200 dark:bg-slate-700" : "bg-muted")}
+                      className={cn(session.id === currentSessionId ? "bg-red-100 dark:bg-red-800/40" : "bg-muted")}
                     >
                       <MessageSquare
                         className={cn(
                           "w-4 h-4",
                           session.id === currentSessionId
-                            ? "text-blue-600 dark:text-blue-400"
+                            ? "text-red-600 dark:text-red-400"
                             : "text-muted-foreground",
                         )}
                       />
@@ -107,7 +107,7 @@ export function Sidebar({
                     <div
                       className={cn(
                         "font-semibold text-sm truncate",
-                        session.id === currentSessionId ? "text-slate-900 dark:text-slate-100" : "text-foreground",
+                        session.id === currentSessionId ? "text-black dark:text-white" : "text-foreground",
                       )}
                     >
                       {session.title}
@@ -175,7 +175,7 @@ export function Sidebar({
             variant="ghost"
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg"
           >
-            <HelpCircle className="w-5 h-5 text-green-500" />
+            <HelpCircle className="w-5 h-5 text-red-500" />
             Help & Support
           </Button>
         </div>

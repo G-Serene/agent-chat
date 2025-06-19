@@ -9,33 +9,58 @@ interface DatabaseSearchIconProps {
 
 export function DatabaseSearchIcon({ className, size = 20 }: DatabaseSearchIconProps) {
   return (
-    <div className={cn("relative inline-flex items-center justify-center", className)}>
+    <div className={cn("relative inline-flex items-center justify-center transition-transform duration-200 hover:scale-105", className)}>
       <svg
         width={size}
         height={size}
         viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="text-white"
+        className="transition-colors duration-200"
       >
-        {/* Single Database */}
-        <ellipse cx="9" cy="6" rx="5" ry="2" fill="currentColor" stroke="currentColor" strokeWidth="1" />
-        <path d="M4 6v8c0 1.1 2.2 2 5 2s5-0.9 5-2V6" fill="currentColor" stroke="currentColor" strokeWidth="1" />
-        <path d="M4 10v4c0 1.1 2.2 2 5 2s5-0.9 5-2v-4" fill="none" stroke="currentColor" strokeWidth="1" />
-        <path d="M4 14v2c0 1.1 2.2 2 5 2s5-0.9 5-2v-2" fill="none" stroke="currentColor" strokeWidth="1" />
+        {/* Minimalist Database */}
+        <ellipse 
+          cx="9" 
+          cy="6" 
+          rx="5" 
+          ry="2" 
+          fill="none" 
+          stroke="#000000" 
+          strokeWidth="1.5"
+          className="dark:stroke-white transition-colors duration-200"
+        />
+        <path 
+          d="M4 6v8c0 1.1 2.2 2 5 2s5-0.9 5-2V6" 
+          fill="none" 
+          stroke="#000000" 
+          strokeWidth="1.5"
+          className="dark:stroke-white transition-colors duration-200"
+        />
+        <path 
+          d="M4 10v4c0 1.1 2.2 2 5 2s5-0.9 5-2v-4" 
+          fill="none" 
+          stroke="#000000" 
+          strokeWidth="1.5"
+          className="dark:stroke-white transition-colors duration-200"
+        />
 
-        {/* Data indicators */}
-        <rect x="7" y="8" width="1.5" height="0.8" rx="0.4" fill="white" opacity="0.9" />
-        <rect x="9" y="8" width="1.5" height="0.8" rx="0.4" fill="white" opacity="0.9" />
-        <rect x="7" y="12" width="1.5" height="0.8" rx="0.4" fill="white" opacity="0.9" />
-        <rect x="9" y="12" width="1.5" height="0.8" rx="0.4" fill="white" opacity="0.9" />
-
-        {/* Magnifying Glass */}
-        <g className="animate-pulse">
-          <circle cx="17" cy="17" r="3" fill="#60A5FA" fillOpacity="0.9" stroke="#1E40AF" strokeWidth="1.5" />
-          <circle cx="17" cy="17" r="2" fill="#DBEAFE" fillOpacity="0.7" />
-          <path d="M19.5 19.5l2.5 2.5" stroke="#374151" strokeWidth="2.5" strokeLinecap="round" />
-        </g>
+        {/* Search Icon */}
+        <circle 
+          cx="17" 
+          cy="17" 
+          r="3" 
+          fill="none" 
+          stroke="#ef4444" 
+          strokeWidth="1.5"
+          className="transition-colors duration-200 hover:stroke-red-600"
+        />
+        <path 
+          d="M19.5 19.5l2.5 2.5" 
+          stroke="#ef4444" 
+          strokeWidth="1.5" 
+          strokeLinecap="round"
+          className="transition-colors duration-200 hover:stroke-red-600"
+        />
       </svg>
     </div>
   )

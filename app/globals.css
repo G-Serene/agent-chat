@@ -3,7 +3,9 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 @layer utilities {
@@ -11,85 +13,99 @@ body {
     text-wrap: balance;
   }
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 via-pink-500 to-purple-600 dark:from-cyan-400 dark:via-pink-400 dark:to-purple-400;
-    text-shadow: 0 0 12px rgba(236, 72, 153, 0.4);
-    filter: drop-shadow(0 0 8px rgba(139, 92, 246, 0.3));
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-black via-red-600 to-black dark:from-white dark:via-red-500 dark:to-white;
+    text-shadow: 0 0 12px rgba(220, 38, 38, 0.3);
+    filter: drop-shadow(0 0 4px rgba(220, 38, 38, 0.2));
   }
 }
 
 @layer base {
   :root {
-    --background: 0 0% 100%; /* White */
-    --foreground: 240 10% 3.9%; /* Dark Gray */
+    /* Minimalist Black/White/Red Theme */
+    --background: 0 0% 100%; /* Pure White */
+    --foreground: 0 0% 0%; /* Pure Black */
 
-    --muted: 240 4.8% 95.9%; /* Light Gray */
-    --muted-foreground: 240 3.8% 46.1%; /* Medium Gray */
+    --muted: 0 0% 96%; /* Very Light Gray */
+    --muted-foreground: 0 0% 40%; /* Mid Gray */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%; /* Pure White */
+    --popover-foreground: 0 0% 0%; /* Pure Black */
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 0 0% 100%; /* Pure White */
+    --card-foreground: 0 0% 0%; /* Pure Black */
 
-    --border: 240 5.9% 90%; /* Light Border */
-    --input: 240 5.9% 90%;
+    --border: 0 0% 90%; /* Light Gray Border */
+    --input: 0 0% 98%; /* Very Light Gray */
 
-    --primary: 240 5.9% 10%; /* Dark Grey instead of purple */
-    --primary-foreground: 0 0% 98%; /* Almost White */
+    --primary: 0 0% 0%; /* Pure Black */
+    --primary-foreground: 0 0% 100%; /* Pure White */
 
-    --secondary: 240 4.8% 95.9%; /* Light Gray */
-    --secondary-foreground: 240 5.9% 10%; /* Dark Gray */
+    --secondary: 0 0% 96%; /* Very Light Gray */
+    --secondary-foreground: 0 0% 0%; /* Pure Black */
 
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 0 84% 60%; /* Pure Red Accent */
+    --accent-foreground: 0 0% 100%; /* White on Red */
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 84% 60%; /* Red for destructive actions */
+    --destructive-foreground: 0 0% 100%;
 
-    --ring: 240 5.9% 10%; /* Dark Grey for focus */
-    --radius: 0.75rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 240 5.9% 10%;
+    --ring: 0 84% 60%; /* Red focus ring */
+    --radius: 0.25rem; /* Minimal border radius */
+    
+    /* Minimalist Chart Colors */
+    --chart-1: 0 0% 0%; /* Pure Black */
+    --chart-2: 0 84% 60%; /* Pure Red */
+    --chart-3: 0 0% 60%; /* Dark Gray */
+    --chart-4: 0 0% 80%; /* Light Gray */
+    --chart-5: 0 0% 40%; /* Mid Gray */
+    
+    /* Minimalist Sidebar colors */
+    --sidebar-background: 0 0% 100%; /* Pure White */
+    --sidebar-foreground: 0 0% 0%; /* Pure Black */
+    --sidebar-primary: 0 0% 0%; /* Pure Black */
+    --sidebar-primary-foreground: 0 0% 100%; /* Pure White */
+    --sidebar-accent: 0 84% 60%; /* Pure Red */
+    --sidebar-accent-foreground: 0 0% 100%; /* White */
+    --sidebar-border: 0 0% 90%; /* Light Gray borders */
+    --sidebar-ring: 0 84% 60%; /* Red */
   }
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Minimalist Dark Mode - Pure Black Theme */
+    --background: 0 0% 0%; /* Pure Black */
+    --foreground: 0 0% 100%; /* Pure White */
+    --card: 0 0% 4%; /* Very Dark Gray */
+    --card-foreground: 0 0% 100%; /* Pure White */
+    --popover: 0 0% 4%; /* Very Dark Gray */
+    --popover-foreground: 0 0% 100%; /* Pure White */
+    --primary: 0 0% 100%; /* Pure White in dark mode */
+    --primary-foreground: 0 0% 0%; /* Pure Black text */
+    --secondary: 0 0% 8%; /* Dark Gray */
+    --secondary-foreground: 0 0% 100%; /* Pure White */
+    --muted: 0 0% 8%; /* Dark Gray */
+    --muted-foreground: 0 0% 60%; /* Mid Gray */
+    --accent: 0 84% 65%; /* Slightly brighter red in dark mode */
+    --accent-foreground: 0 0% 0%; /* Black on red */
+    --destructive: 0 84% 65%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 15%; /* Dark Gray border */
+    --input: 0 0% 8%; /* Dark Gray */
+    --ring: 0 84% 65%;
+    
+    /* Dark mode chart colors */
+    --chart-1: 0 0% 100%; /* Pure White */
+    --chart-2: 0 84% 65%; /* Red */
+    --chart-3: 0 0% 80%; /* Light Gray */
+    --chart-4: 0 0% 60%; /* Mid Gray */
+    --chart-5: 0 0% 40%; /* Dark Gray */
+    
+    --sidebar-background: 0 0% 0%; /* Pure Black */
+    --sidebar-foreground: 0 0% 100%; /* Pure White */
+    --sidebar-primary: 0 0% 100%; /* Pure White */
+    --sidebar-primary-foreground: 0 0% 0%; /* Pure Black */
+    --sidebar-accent: 0 84% 65%; /* Red */
+    --sidebar-accent-foreground: 0 0% 0%; /* Black */
+    --sidebar-border: 0 0% 15%; /* Dark Gray */
+    --sidebar-ring: 0 84% 65%; /* Red */
   }
 }
 
