@@ -11,6 +11,7 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
 - 📊 **Artifact Management** - Code blocks, charts, and diagrams in a dedicated panel
 - 📈 **Chart Rendering** - Interactive charts with Recharts integration
 - 🎨 **Mermaid Diagrams** - Support for flowcharts and diagrams
+- 🔐 **Azure SSO Authentication** - Environment-based auth with NextAuth.js
 - 💾 **Session Persistence** - Chat history saved locally
 - 🎯 **Responsive Design** - Works on desktop and mobile
 - 🌙 **Modern UI** - Built with shadcn/ui and Tailwind CSS
@@ -51,6 +52,16 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
    NEXT_PUBLIC_BACKEND_URL=http://localhost:8501
    BACKEND_URL=http://localhost:8501
    
+   # Authentication Configuration
+   NEXTAUTH_URL=http://localhost:3000
+   NEXTAUTH_SECRET=your-secret-key-here
+   NODE_ENV=development
+   
+   # Azure AD (Production Only)
+   AUTH_AZURE_AD_CLIENT_ID=your-azure-client-id
+   AUTH_AZURE_AD_CLIENT_SECRET=your-azure-client-secret
+   AUTH_AZURE_AD_TENANT_ID=your-azure-tenant-id
+   
    # For production, change to your actual backend URL:
    # NEXT_PUBLIC_BACKEND_URL=https://your-backend-domain.com
    # BACKEND_URL=https://your-backend-domain.com
@@ -73,12 +84,21 @@ A modern, AI-powered chat interface built with Next.js that integrates with Auto
 autogen-chat-ui/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
+│   │   ├── auth/          # NextAuth.js API routes
 │   │   ├── chat/          # Chat endpoint
 │   │   └── test-backend/  # Backend health check
+│   ├── auth/              # Auth pages
+│   │   ├── signin/        # Custom signin page
+│   │   └── error/         # Auth error page
 │   ├── globals.css        # Global styles
 │   ├── layout.tsx         # Root layout
 │   └── page.tsx           # Main chat page
 ├── components/            # React components
+│   ├── auth/             # Auth components
+│   │   ├── session-provider.tsx
+│   │   ├── sign-in-button.tsx
+│   │   ├── sign-out-button.tsx
+│   │   └── user-menu.tsx
 │   ├── ui/               # shadcn/ui components
 │   ├── artifact-window.tsx
 │   ├── chat-interface.tsx
@@ -87,9 +107,13 @@ autogen-chat-ui/
 │   ├── message-list.tsx
 │   └── sidebar.tsx
 ├── lib/                  # Utilities
+│   ├── auth.ts           # NextAuth configuration
 │   ├── artifact-detector.ts
 │   ├── chat-storage.ts
 │   └── utils.ts
+├── types/               # TypeScript definitions
+│   └── next-auth.d.ts   # Auth type extensions
+├── middleware.ts        # Route protection
 ├── public/              # Static assets
 ├── .env.local          # Environment variables
 ├── package.json        # Dependencies
@@ -134,6 +158,39 @@ data: [DONE]
 |----------|-------------|---------|
 | \`NEXT_PUBLIC_BACKEND_URL\` | Public backend URL (client-side) | \`http://localhost:8501\` |
 | \`BACKEND_URL\` | Backend URL (server-side) | \`http://localhost:8501\` |
+| \`NEXTAUTH_URL\` | Your application URL | \`http://localhost:3000\` |
+| \`NEXTAUTH_SECRET\` | Secret key for JWT encryption | Required |
+| \`NODE_ENV\` | Environment mode | \`development\` |
+| \`AUTH_AZURE_AD_CLIENT_ID\` | Azure App Registration Client ID | Production only |
+| \`AUTH_AZURE_AD_CLIENT_SECRET\` | Azure App Registration Client Secret | Production only |
+| \`AUTH_AZURE_AD_TENANT_ID\` | Azure Tenant ID | Production only |
+
+## 🔐 Authentication
+
+This application includes Azure Entra ID SSO integration with environment-based configuration:
+
+### Development Mode
+- **SSO is disabled** for easier development
+- Users can bypass authentication with "Continue as Developer" button
+- No Azure configuration required
+
+### Production Mode
+- **Full Azure Entra ID authentication** flow
+- Real user sessions from Azure AD
+- Requires Azure App Registration setup
+
+### Azure App Registration Setup (Production)
+
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Navigate to **Azure Active Directory** > **App registrations**
+3. Click **New registration** and configure:
+   - **Name**: Your application name
+   - **Redirect URI**: \`https://yourdomain.com/api/auth/callback/azure-ad\`
+4. Copy the **Application (client) ID**
+5. Create a **client secret** in **Certificates & secrets**
+6. Add API permissions:
+   - Microsoft Graph > Delegated > User.Read
+   - Microsoft Graph > Delegated > profile, email, openid
 
 ## 🎨 Customization
 

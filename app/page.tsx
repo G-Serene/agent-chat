@@ -6,6 +6,7 @@ import type { Message } from "@ai-sdk/react"
 import { ChatInterface } from "@/components/chat-interface"
 import { Sidebar } from "@/components/sidebar"
 import { ArtifactWindow } from "@/components/artifact-window"
+import { UserMenu } from "@/components/auth/user-menu"
 import { Button } from "@/components/ui/button"
 import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
 import { Toaster, toast } from "sonner"
@@ -282,6 +283,7 @@ export default function ChatPage() {
               </h1>
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
+              <UserMenu />
               {currentSessionId && (
                 <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded font-mono">
                   Session: {currentSessionId.slice(-8)}
