@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, startTransition } from "react"
 import { useChat } from "@ai-sdk/react"
 import type { Message } from "@ai-sdk/react"
 import { ChatInterface } from "@/components/chat-interface"
@@ -12,21 +12,22 @@ import { Button } from "@/components/ui/button"
 import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
+import { PerformanceMonitor } from "@/components/performance-monitor"
 import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
+import { cn } from "@/lib/utils"
+import { useThrottledResize } from "@/hooks/use-resize-optimization"
 import { useMCP } from "@/components/mcp/mcp-provider"
 
-export default function ChatPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+export default function ChatPage() {  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(320)
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false)
+  const [isResizingArtifact, setIsResizingArtifact] = useState(false)
   const [artifactsOpen, setArtifactsOpen] = useState(false)
   const [artifactWindowWidth, setArtifactWindowWidth] = useState(400)
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | undefined>(undefined)
   const [chatSessions, setChatSessions] = useState<ChatSessionSummary[]>([])
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
-
-  // MCP integration
-  const mcp = useMCP()
 
 
 
@@ -41,6 +42,8 @@ export default function ChatPage() {
       selected_resources: mcp.selectedResources
     },
     initialMessages: [],
+    // More aggressive throttling for better performance
+    experimental_throttle: 100, // Increased from 50ms to 100ms for better UI responsiveness
     onError: (err) => {
       console.error("❌ Chat error:", err)
       toast.error("An error occurred", { description: err.message })
@@ -131,14 +134,7 @@ export default function ChatPage() {
         }
       }
     })
-    return artifacts
-  }, [messages, isLoading])
-
-  const chatWidth = useMemo(() => {
-    const currentSidebarWidth = sidebarOpen ? sidebarWidth : 0
-    const artifactWidth = artifactsOpen ? artifactWindowWidth : 0
-    return `calc(100vw - ${currentSidebarWidth}px - ${artifactWidth}px)`
-  }, [sidebarOpen, sidebarWidth, artifactsOpen, artifactWindowWidth])
+    return artifacts  }, [messages, isLoading])
 
   const handleArtifactToggle = (artifactId?: string) => {
     if (artifactId) {
@@ -200,19 +196,27 @@ export default function ChatPage() {
 
     toast.success("Chat history cleared successfully")
   }, [resetChatStateAndSwitchSession])
-
   const handleSidebarResize = useCallback((newWidth: number) => {
     setSidebarWidth(newWidth)
     localStorage.setItem("agent-chat-sidebar-width", newWidth.toString())
   }, [])
 
+  // Optimized throttled resize for sidebar
+  const throttledSidebarResize = useThrottledResize(handleSidebarResize, 3)
+
   return (
     <>
-      <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">
-        {sidebarOpen && (
+      <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">        {sidebarOpen && (
           <div
-            className="overflow-hidden border-r bg-background/80 backdrop-blur-md shadow-sm z-40 flex-shrink-0 transition-all duration-300 ease-in-out relative"
-            style={{ width: `${sidebarWidth}px` }}
+            className={cn(
+              "overflow-hidden border-r bg-background/80 backdrop-blur-md shadow-sm z-40 flex-shrink-0 relative",
+              !isResizingSidebar && "transition-all duration-300 ease-in-out"
+            )}
+            style={{ 
+              width: `${sidebarWidth}px`,
+              transform: 'translateZ(0)', // Hardware acceleration
+              willChange: isResizingSidebar ? 'width' : 'auto'
+            }}
           >
             <Sidebar
               onNewChat={handleNewChat}
@@ -221,19 +225,21 @@ export default function ChatPage() {
               onSessionSelect={handleSessionSelect}
               onSessionDelete={handleSessionDelete}
               onClearHistory={handleClearHistory}
-            />
-
-            {/* Resize Handle */}
+            />            {/* Resize Handle */}
             <div
-              className="absolute top-0 right-0 w-1 h-full bg-border hover:bg-accent cursor-col-resize transition-colors duration-200 group"
+              className={cn(
+                "absolute top-0 right-0 w-1 h-full cursor-col-resize transition-colors duration-200 group",
+                isResizingSidebar ? "bg-blue-500/30" : "bg-border hover:bg-accent"
+              )}
               onMouseDown={(e) => {
                 e.preventDefault()
+                setIsResizingSidebar(true)
                 const startX = e.clientX
                 const startWidth = sidebarWidth
 
                 const handleMouseMove = (e: MouseEvent) => {
                   const newWidth = Math.max(280, Math.min(500, startWidth + (e.clientX - startX)))
-                  handleSidebarResize(newWidth)
+                  throttledSidebarResize(newWidth)
                 }
 
                 const handleMouseUp = () => {
@@ -241,6 +247,7 @@ export default function ChatPage() {
                   document.removeEventListener("mouseup", handleMouseUp)
                   document.body.style.cursor = "default"
                   document.body.style.userSelect = "auto"
+                  setIsResizingSidebar(false)
                 }
 
                 document.addEventListener("mousemove", handleMouseMove)
@@ -249,14 +256,21 @@ export default function ChatPage() {
                 document.body.style.userSelect = "none"
               }}
             >
-              <div className="absolute inset-y-0 -right-1 w-3 group-hover:bg-accent/20" />
+              <div className={cn(
+                "absolute inset-y-0 -right-1 w-3 transition-all duration-200",
+                isResizingSidebar ? "bg-blue-500/20" : "group-hover:bg-accent/20"
+              )} />
             </div>
           </div>
-        )}
-
-        <div
-          className="flex flex-col min-w-0 transition-all duration-300 ease-in-out flex-grow"
-          style={{ width: chatWidth }}
+        )}        <div
+          className={cn(
+            "flex flex-col min-w-0 flex-1 overflow-hidden",
+            (!isResizingSidebar && !isResizingArtifact) && "transition-all duration-300 ease-in-out"
+          )}
+          style={{ 
+            transform: 'translateZ(0)', // Hardware acceleration
+            willChange: (isResizingSidebar || isResizingArtifact) ? 'width' : 'auto'
+          }}
         >
           <header className="flex items-center justify-between p-3 border-b bg-background/90 backdrop-blur-md shadow-sm z-30 border-blue-100 dark:border-blue-900/50">
             <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -314,15 +328,18 @@ export default function ChatPage() {
                 isArtifactsPanelOpen={artifactsOpen}
               />
             )}
-          </div>
-        </div>
+          </div>        </div>
 
         {artifactsOpen && (
           <ArtifactWindow
             artifacts={allArtifacts}
             isOpen={artifactsOpen}
             onClose={() => setArtifactsOpen(false)}
-            onResize={setArtifactWindowWidth}
+            onResize={(width) => {
+              setArtifactWindowWidth(width)
+            }}
+            onResizeStart={() => setIsResizingArtifact(true)}
+            onResizeEnd={() => setIsResizingArtifact(false)}
             initialWidth={artifactWindowWidth}
             selectedArtifactId={selectedArtifactId}
           />

@@ -7,13 +7,27 @@ import {
   LineChart,
   AreaChart,
   PieChart,
+  ScatterChart,
+  RadarChart,
+  ComposedChart,
   Bar,
   Line,
   Area,
   Pie,
   Cell,
+  Scatter,
+  Radar,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Treemap,
+  Funnel,
+  FunnelChart,
+  Sankey,
+  LabelList,
   XAxis,
   YAxis,
+  ZAxis,
   CartesianGrid,
   Tooltip,
   Legend,
@@ -26,16 +40,23 @@ interface ChartRendererProps {
   }
 }
 
-// Minimalist black, white, red color palette
+// Enhanced color palette for more chart types
 const COLORS = [
-  "#000000", // Pure Black
-  "#dc2626", // Pure Red
+  "#dc2626", // Red
+  "#2563eb", // Blue  
+  "#16a34a", // Green
+  "#ea580c", // Orange
+  "#9333ea", // Purple
+  "#0891b2", // Cyan
+  "#c2410c", // Dark Orange
+  "#7c3aed", // Violet
+  "#059669", // Emerald
+  "#be123c", // Rose
+  "#4338ca", // Indigo
+  "#0d9488", // Teal
+  "#000000", // Black
   "#666666", // Dark Gray
   "#999999", // Mid Gray
-  "#cccccc", // Light Gray
-  "#e60000", // Bright Red
-  "#333333", // Charcoal
-  "#b91c1c", // Dark Red
 ]
 
 // Minimalist chart theme
@@ -298,27 +319,137 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
                 fill={s.fill || COLORS[i % COLORS.length]}
                 fillOpacity={0.6}
                 strokeWidth={2}
-                {...s}
-              />
+                {...s}              />
             ))}
           </AreaChart>
         )
 
       case "pie":
+        const pieDataKey = config?.series?.[0]?.dataKey || "value" || Object.keys(data[0] || {})[1] || "avg_temp"
+        const pieNameKey = config?.series?.[0]?.nameKey || "name" || Object.keys(data[0] || {})[0] || "region"
+        
+        // Debug logging for pie chart
+        console.log("🥧 Pie Chart Debug:")
+        console.log("pieDataKey:", pieDataKey)
+        console.log("pieNameKey:", pieNameKey)
+        console.log("data sample:", data[0])
+        console.log("config.series:", config?.series)
+        
+        // Calculate total for percentage calculations
+        const totalValue = data.reduce((sum: number, item: any) => sum + (item[pieDataKey] || 0), 0)
+        console.log("totalValue:", totalValue)
+        
         return (
           <PieChart {...commonProps}>
-            <Tooltip content={<CustomTooltip />} />
-            {config?.legend && <Legend content={<CustomLegend />} />}
+            <Tooltip 
+              content={({ active, payload }) => {
+                if (active && payload && payload.length) {
+                  const itemData = payload[0].payload
+                  const percentage = totalValue > 0 ? ((itemData[pieDataKey] / totalValue) * 100).toFixed(1) : '0.0'
+                  return (
+                    <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+                      <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {itemData[pieNameKey] || 'Unknown'}
+                      </p>
+                      <p className="text-sm" style={{ color: payload[0].color }}>
+                        <span className="font-medium">Value:</span> {itemData[pieDataKey]?.toLocaleString() || 'N/A'}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <span className="font-medium">Percentage:</span> {percentage}%
+                      </p>
+                    </div>
+                  )
+                }
+                return null
+              }}
+            />
+            {/* Enhanced legend that always shows for pie charts */}
+            <Legend 
+              content={({ payload }) => {
+                if (!payload || payload.length === 0) {
+                  // Fallback: create legend from data directly
+                  return (
+                    <div className="flex flex-wrap justify-center gap-4 mt-6">
+                      {data.map((entry: any, index: number) => {
+                        const percentage = totalValue > 0 ? ((entry[pieDataKey] / totalValue) * 100).toFixed(1) : '0.0'
+                        return (
+                          <div key={index} className="flex items-center gap-2">
+                            <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.fill || entry.color || COLORS[index % COLORS.length] }} />
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                              {entry[pieNameKey] || `Item ${index + 1}`}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              ({entry[pieDataKey]?.toLocaleString() || 'N/A'} - {percentage}%)
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                }
+                return (
+                  <div className="flex flex-wrap justify-center gap-4 mt-6">
+                    {payload.map((entry: any, index: number) => {
+                      const itemData = entry.payload
+                      const percentage = totalValue > 0 ? ((itemData[pieDataKey] / totalValue) * 100).toFixed(1) : '0.0'
+                      return (
+                        <div key={index} className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: entry.color }} />
+                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">
+                            {itemData[pieNameKey] || entry.value || `Item ${index + 1}`}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            ({itemData[pieDataKey]?.toLocaleString() || 'N/A'} - {percentage}%)
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              }}
+            />
             <Pie
               data={data}
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(1)}%`}
-              outerRadius={120}
+              label={({ name, percent, value }) => 
+                `${name || 'Item'}: ${(percent * 100).toFixed(1)}%`
+              }
+              outerRadius={config?.outerRadius || 120}
+              innerRadius={config?.innerRadius || 0} // Support for donut charts
               fill="#8884d8"
-              dataKey={config?.series?.[0]?.dataKey || "avg_temp"}
-              nameKey={config?.series?.[0]?.nameKey || "region"}
+              dataKey={pieDataKey}
+              nameKey={pieNameKey}
+              stroke="#ffffff"
+              strokeWidth={2}
+            >
+              {data.map((entry: any, index: number) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={entry.fill || entry.color || COLORS[index % COLORS.length]} 
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        )
+
+      case "donut":
+        return (
+          <PieChart {...commonProps}>
+            <Tooltip content={<CustomTooltip />} />
+            <Legend content={<CustomLegend />} />
+            <Pie
+              data={data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+              outerRadius={120}
+              innerRadius={60} // Donut hole
+              fill="#8884d8"
+              dataKey={config?.series?.[0]?.dataKey || "value"}
+              nameKey={config?.series?.[0]?.nameKey || "name"}
               stroke="#ffffff"
               strokeWidth={2}
             >
@@ -329,6 +460,155 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
           </PieChart>
         )
 
+      case "scatter":
+        return (
+          <ScatterChart data={data} {...commonProps}>
+            {config?.grid && <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.colors.grid} strokeWidth={1} />}
+            <XAxis
+              dataKey={config?.xAxis?.dataKey || "x"}
+              tick={{ fontSize: CHART_THEME.fontSize, fill: CHART_THEME.colors.text }}
+              axisLine={{ stroke: CHART_THEME.colors.grid }}
+              tickLine={{ stroke: CHART_THEME.colors.grid }}
+              {...(config?.xAxis || {})}
+            />
+            <YAxis
+              dataKey={config?.yAxis?.dataKey || "y"}
+              tick={{ fontSize: CHART_THEME.fontSize, fill: CHART_THEME.colors.text }}
+              axisLine={{ stroke: CHART_THEME.colors.grid }}
+              tickLine={{ stroke: CHART_THEME.colors.grid }}
+              {...(config?.yAxis || {})}
+            />
+            <ZAxis dataKey={config?.zAxis?.dataKey || "z"} range={[64, 144]} />
+            <Tooltip content={<CustomTooltip />} />
+            {config?.legend && <Legend content={<CustomLegend />} />}
+            <Scatter 
+              data={data} 
+              fill={config?.series?.[0]?.fill || COLORS[0]}
+            />
+          </ScatterChart>
+        )
+
+      case "radar":
+        return (
+          <RadarChart data={data} {...commonProps}>
+            <PolarGrid />
+            <PolarAngleAxis dataKey={config?.series?.[0]?.nameKey || "subject"} />
+            <PolarRadiusAxis />
+            <Tooltip content={<CustomTooltip />} />
+            {config?.legend && <Legend content={<CustomLegend />} />}
+            <Radar
+              name={config?.series?.[0]?.name || "Value"}
+              dataKey={config?.series?.[0]?.dataKey || "value"}
+              stroke={config?.series?.[0]?.stroke || COLORS[0]}
+              fill={config?.series?.[0]?.fill || COLORS[0]}
+              fillOpacity={0.6}
+            />
+          </RadarChart>
+        )
+
+      case "composed":
+        return (
+          <ComposedChart data={data} {...commonProps}>
+            {config?.grid && <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.colors.grid} strokeWidth={1} />}
+            <XAxis
+              dataKey={config?.xAxis?.dataKey || "name"}
+              tick={{ fontSize: CHART_THEME.fontSize, fill: CHART_THEME.colors.text }}
+              axisLine={{ stroke: CHART_THEME.colors.grid }}
+              tickLine={{ stroke: CHART_THEME.colors.grid }}
+              {...(config?.xAxis || {})}
+            />
+            <YAxis
+              tick={{ fontSize: CHART_THEME.fontSize, fill: CHART_THEME.colors.text }}
+              axisLine={{ stroke: CHART_THEME.colors.grid }}
+              tickLine={{ stroke: CHART_THEME.colors.grid }}
+              {...(config?.yAxis || {})}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            {config?.legend && <Legend content={<CustomLegend />} />}
+            {config?.series?.map((s: any, i: number) => {
+              if (s.type === 'bar') {
+                return (
+                  <Bar
+                    key={i}
+                    dataKey={s.dataKey}
+                    fill={s.fill || COLORS[i % COLORS.length]}
+                    radius={[2, 2, 0, 0]}
+                    {...s}
+                  />
+                )
+              } else if (s.type === 'line') {
+                return (
+                  <Line
+                    key={i}
+                    dataKey={s.dataKey}
+                    stroke={s.stroke || s.fill || COLORS[i % COLORS.length]}
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
+                    {...s}
+                  />
+                )
+              } else if (s.type === 'area') {
+                return (
+                  <Area
+                    key={i}
+                    dataKey={s.dataKey}
+                    stroke={s.stroke || s.fill || COLORS[i % COLORS.length]}
+                    fill={s.fill || COLORS[i % COLORS.length]}
+                    fillOpacity={0.6}
+                    strokeWidth={2}
+                    {...s}                  />
+                )
+              }
+              return null
+            })}
+          </ComposedChart>
+        )
+
+      case "treemap":
+        return (
+          <ResponsiveContainer width="100%" height={400}>
+            <Treemap
+              data={data}
+              dataKey={config?.series?.[0]?.dataKey || "value"}
+            >
+              {data.map((entry: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={entry.fill || COLORS[index % COLORS.length]} />
+              ))}
+            </Treemap>
+          </ResponsiveContainer>
+        )
+
+      case "funnel":
+        return (
+          <FunnelChart {...commonProps}>
+            <Tooltip content={<CustomTooltip />} />
+            {config?.legend && <Legend content={<CustomLegend />} />}
+            <Funnel
+              dataKey={config?.series?.[0]?.dataKey || "value"}
+              data={data}
+              isAnimationActive
+            >
+              {data.map((entry: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={entry.fill || COLORS[index % COLORS.length]} />
+              ))}
+            </Funnel>
+          </FunnelChart>
+        )
+
+      case "heatmap":
+        // Note: Recharts doesn't have a native heatmap, but we can simulate one with rectangles
+        return (
+          <div className="text-center p-8 text-gray-500 dark:text-gray-400">
+            <p className="text-lg font-medium mb-2">
+              Heatmap charts require specialized visualization libraries
+            </p>
+            <p className="text-sm">
+              Consider using alternative chart types like scatter plots for similar data visualization
+            </p>
+          </div>
+        )
+
       default:
         return (
           <div className="text-center p-8 text-gray-500 dark:text-gray-400">
@@ -336,7 +616,14 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
               Unsupported chart type:{" "}
               <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono">{chartType}</code>
             </p>
-            <p className="text-sm">Supported types: bar, line, area, pie</p>
+            <p className="text-sm mb-3">Supported types:</p>
+            <div className="flex flex-wrap justify-center gap-2 text-xs">
+              {['bar', 'line', 'area', 'pie', 'donut', 'scatter', 'radar', 'composed', 'treemap', 'funnel', 'heatmap'].map(type => (
+                <code key={type} className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">
+                  {type}
+                </code>
+              ))}
+            </div>
           </div>
         )
     }
