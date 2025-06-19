@@ -152,6 +152,8 @@ export function MCPProvider({ children }: MCPProviderProps) {
     setError(null)
     
     try {
+      console.log('🔄 Sending initialization request to MCP API...');
+      
       const response = await fetch('/api/mcp', {
         method: 'POST',
         headers: {
@@ -170,15 +172,21 @@ export function MCPProvider({ children }: MCPProviderProps) {
       
       if (data.success) {
         setIsInitialized(true)
-        await getStatus() // Refresh status after initialization
         console.log('✅ MCP client initialized successfully')
+        
+        // Refresh status after successful initialization
+        await getStatus()
       } else {
         throw new Error(data.error || 'Failed to initialize MCP client')
       }
     } catch (err) {
-      console.error('Failed to initialize MCP client:', err)
-      setError(err instanceof Error ? err.message : 'Failed to initialize MCP client')
+      console.error('❌ Failed to initialize MCP client:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Failed to initialize MCP client'
+      setError(errorMessage)
       setIsInitialized(false)
+      
+      // Don't throw here to prevent breaking the component
+      // The error state will be displayed in the UI
     } finally {
       setIsLoading(false)
     }
@@ -258,32 +266,84 @@ export function MCPProvider({ children }: MCPProviderProps) {
     }
   }, [])
 
-  // Initialize on mount
+  // Health check for MCP server availability
+  const checkMCPServerHealth = useCallback(async (): Promise<boolean> => {
+    try {
+      // First check if the backend MCP server is running by making a simple request
+      const healthResponse = await fetch('http://localhost:8080/mcp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          method: 'ping'
+        }),
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      return healthResponse.ok;
+    } catch (err) {
+      console.warn('⚠️ MCP server health check failed:', err);
+      return false;
+    }
+  }, [])
+
+  // Initialize on mount - connect to MCP server during startup
   useEffect(() => {
     let isComponentMounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 2000; // 2 seconds
 
-    const initializeMCP = async () => {
+    const initializeMCP = async (): Promise<void> => {
       try {
-        // Only get status initially
-        await getStatus()
+        console.log(`🚀 Starting MCP initialization attempt ${retryCount + 1}/${maxRetries}...`);
         
-        // Auto-initialize if not already initialized and we have servers configured
-        // but ensure the component is still mounted to avoid race conditions
-        if (isComponentMounted && !isInitialized && Object.keys(serverStatuses).length > 0) {
-          console.log('🔄 Auto-initializing MCP on mount...');
-          await initialize()
+        // First, check if the MCP server is available
+        console.log('🔍 Checking MCP server health...');
+        const serverHealthy = await checkMCPServerHealth();
+        
+        if (!serverHealthy) {
+          throw new Error('MCP server is not available at http://localhost:8080/mcp');
         }
+        
+        console.log('✅ MCP server health check passed');
+        
+        // Then attempt to initialize the MCP client manager
+        if (isComponentMounted && !isInitialized) {
+          console.log('🔄 Initializing MCP client manager...');
+          await initialize();
+        }
+        
+        // Finally get the current status
+        if (isComponentMounted) {
+          await getStatus();
+        }
+        
+        console.log('✅ MCP startup initialization completed successfully');
       } catch (err) {
-        console.warn('Failed to auto-initialize MCP:', err)
+        console.error(`❌ MCP initialization attempt ${retryCount + 1} failed:`, err);
+        
+        retryCount++;
+        if (retryCount < maxRetries && isComponentMounted) {
+          console.log(`🔄 Retrying MCP initialization in ${retryDelay}ms... (${retryCount}/${maxRetries})`);
+          setTimeout(() => {
+            if (isComponentMounted) {
+              initializeMCP();
+            }
+          }, retryDelay);
+        } else {
+          console.error('❌ All MCP initialization attempts failed');
+          setError(err instanceof Error ? err.message : 'Failed to initialize MCP during startup');
+        }
       }
-    }
+    };
 
-    // Add a small delay to avoid immediate initialization conflicts
-    const timeoutId = setTimeout(initializeMCP, 100);
+    // Start initialization immediately on mount
+    initializeMCP();
 
     return () => {
       isComponentMounted = false;
-      clearTimeout(timeoutId);
     };
   }, []) // Empty dependency array for mount-only effect
 
@@ -294,6 +354,33 @@ export function MCPProvider({ children }: MCPProviderProps) {
       setSelectedTools(allToolNames)
     }
   }, [tools, selectedTools.length, setSelectedTools])
+
+  // Auto-reconnection mechanism - periodically check and reconnect if needed
+  useEffect(() => {
+    if (!isInitialized || isConnected) {
+      return; // Don't start reconnection if not initialized or already connected
+    }
+
+    console.log('🔄 Starting auto-reconnection monitoring...');
+    
+    const reconnectInterval = setInterval(async () => {
+      try {
+        console.log('🔍 Checking for MCP server availability...');
+        const serverHealthy = await checkMCPServerHealth();
+        
+        if (serverHealthy && !isConnected && !isLoading) {
+          console.log('✅ MCP server is back online, attempting to reconnect...');
+          await refreshConnections();
+        }
+      } catch (err) {
+        console.warn('⚠️ Auto-reconnection check failed:', err);
+      }
+    }, 10000); // Check every 10 seconds
+
+    return () => {
+      clearInterval(reconnectInterval);
+    };
+  }, [isInitialized, isConnected, isLoading, checkMCPServerHealth, refreshConnections])
 
   const value: MCPContextType = {
     // State
