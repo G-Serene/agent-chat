@@ -3,7 +3,7 @@
  * Handles loading and validation of Azure OpenAI settings from environment variables
  */
 
-import { AzureOpenAIConfig } from './types';
+import { AzureOpenAIConfig } from '../mcp/types';
 
 /**
  * Load Azure OpenAI configuration from environment variables

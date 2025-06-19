@@ -1,27 +1,53 @@
 /**
- * Azure OpenAI Service Integration for MCP
- * Handles Azure OpenAI API calls with tool calling support
+ * Pure Azure OpenAI LLM Client
+ * Handles only LLM interactions without MCP coupling
  */
 
 import { AzureOpenAI } from 'openai';
 import { DefaultAzureCredential, getBearerTokenProvider } from '@azure/identity';
-import { AzureOpenAIConfig, MCPTool, MCPToolCall, MCPChatMessage } from './types';
+import { AzureOpenAIConfig } from '../mcp/types';
 
-export interface ChatCompletionOptions {
-  messages: MCPChatMessage[];
-  tools?: MCPTool[];
+export interface LLMMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
+export interface LLMTool {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, any>;
+    required?: string[];
+  };
+}
+
+export interface LLMToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, any>;
+}
+
+export interface LLMChatOptions {
+  messages: LLMMessage[];
+  tools?: LLMTool[];
   maxTokens?: number;
   temperature?: number;
   stream?: boolean;
 }
 
-export interface ChatCompletionResponse {
+export interface LLMChatResponse {
   content?: string;
-  toolCalls?: MCPToolCall[];
-  finishReason: 'stop' | 'tool_calls' | 'length' | 'content_filter';
+  toolCalls?: LLMToolCall[];
+  finishReason?: 'stop' | 'tool_calls' | 'length' | 'content_filter';
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
 }
 
-export class AzureOpenAIService {
+export class AzureOpenAIClient {
   private client: AzureOpenAI | null = null;
   private config: AzureOpenAIConfig;
 
@@ -57,17 +83,17 @@ export class AzureOpenAIService {
         throw new Error('Either Azure AD authentication or API key must be configured');
       }
 
-      console.log('✅ Azure OpenAI client initialized successfully');
+      console.log('✅ Azure OpenAI LLM client initialized successfully');
     } catch (error) {
-      console.error('❌ Failed to initialize Azure OpenAI client:', error);
-      throw new Error(`Azure OpenAI initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ Failed to initialize Azure OpenAI LLM client:', error);
+      throw new Error(`Azure OpenAI LLM client initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
    * Create chat completion with optional tool calling
    */
-  async createChatCompletion(options: ChatCompletionOptions): Promise<ChatCompletionResponse> {
+  async createChatCompletion(options: LLMChatOptions): Promise<LLMChatResponse> {
     if (!this.client) {
       throw new Error('Azure OpenAI client not initialized');
     }
@@ -94,7 +120,12 @@ export class AzureOpenAIService {
       return {
         content: choice.message?.content || undefined,
         toolCalls: this.parseToolCalls(choice.message?.tool_calls || []),
-        finishReason: this.mapFinishReason(choice.finish_reason)
+        finishReason: this.mapFinishReason(choice.finish_reason),
+        usage: response.usage ? {
+          promptTokens: response.usage.prompt_tokens,
+          completionTokens: response.usage.completion_tokens,
+          totalTokens: response.usage.total_tokens
+        } : undefined
       };
     } catch (error) {
       console.error('❌ Azure OpenAI API error:', error);
@@ -105,7 +136,7 @@ export class AzureOpenAIService {
   /**
    * Create streaming chat completion
    */
-  async *createStreamingChatCompletion(options: ChatCompletionOptions): AsyncGenerator<ChatCompletionResponse, void, unknown> {
+  async *createStreamingChatCompletion(options: LLMChatOptions): AsyncGenerator<LLMChatResponse, void, unknown> {
     if (!this.client) {
       throw new Error('Azure OpenAI client not initialized');
     }
@@ -124,7 +155,7 @@ export class AzureOpenAIService {
         stream: true
       });
 
-      let accumulatedToolCalls: MCPToolCall[] = [];
+      let accumulatedToolCalls: LLMToolCall[] = [];
       let accumulatedContent = '';
 
       for await (const chunk of stream) {
@@ -138,9 +169,8 @@ export class AzureOpenAIService {
         if (delta.content) {
           accumulatedContent += delta.content;
           yield {
-            content: delta.content,
-            finishReason: 'stop'
-          };
+            content: delta.content
+          } as LLMChatResponse;
         }
 
         // Handle tool call chunks
@@ -151,7 +181,7 @@ export class AzureOpenAIService {
 
         // Handle finish reason
         if (choice.finish_reason) {
-          const response: ChatCompletionResponse = {
+          const response: LLMChatResponse = {
             finishReason: this.mapFinishReason(choice.finish_reason)
           };
 
@@ -170,34 +200,32 @@ export class AzureOpenAIService {
   }
 
   /**
+   * Check if client is ready
+   */
+  isReady(): boolean {
+    return this.client !== null;
+  }
+
+  /**
    * Format messages for Azure OpenAI API
    */
-  private formatMessages(messages: MCPChatMessage[]): any[] {
+  private formatMessages(messages: LLMMessage[]): any[] {
     return messages.map(msg => ({
       role: msg.role,
-      content: msg.content,
-      tool_calls: msg.toolCalls ? msg.toolCalls.map(tc => ({
-        id: `call_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        type: 'function' as const,
-        function: {
-          name: tc.name,
-          arguments: JSON.stringify(tc.arguments)
-        }
-      })) : undefined,
-      tool_call_id: msg.toolResults ? `call_${Date.now()}` : undefined
+      content: msg.content
     }));
   }
 
   /**
-   * Format MCP tools for Azure OpenAI API
+   * Format tools for Azure OpenAI API
    */
-  private formatTools(tools: MCPTool[]): any[] {
+  private formatTools(tools: LLMTool[]): any[] {
     return tools.map(tool => ({
       type: 'function',
       function: {
         name: tool.name,
         description: tool.description,
-        parameters: tool.inputSchema
+        parameters: tool.parameters
       }
     }));
   }
@@ -205,42 +233,24 @@ export class AzureOpenAIService {
   /**
    * Parse tool calls from Azure OpenAI response
    */
-  private parseToolCalls(toolCalls: any[]): MCPToolCall[] {
-    if (!toolCalls) return [];
-
+  private parseToolCalls(toolCalls: any[]): LLMToolCall[] {
     return toolCalls.map(tc => ({
-      name: tc.function?.name || tc.name,
-      arguments: tc.function?.arguments ? JSON.parse(tc.function.arguments) : tc.arguments || {}
+      id: tc.id,
+      name: tc.function?.name || '',
+      arguments: tc.function?.arguments ? JSON.parse(tc.function.arguments) : {}
     }));
   }
 
   /**
-   * Map Azure OpenAI finish reason to our type
+   * Map Azure OpenAI finish reason to our format
    */
-  private mapFinishReason(reason: string | null | undefined): 'stop' | 'tool_calls' | 'length' | 'content_filter' {
+  private mapFinishReason(reason: string | null): 'stop' | 'tool_calls' | 'length' | 'content_filter' {
     switch (reason) {
-      case 'tool_calls':
-        return 'tool_calls';
-      case 'length':
-        return 'length';
-      case 'content_filter':
-        return 'content_filter';
-      default:
-        return 'stop';
+      case 'stop': return 'stop';
+      case 'tool_calls': return 'tool_calls';
+      case 'length': return 'length';
+      case 'content_filter': return 'content_filter';
+      default: return 'stop';
     }
-  }
-
-  /**
-   * Check if the service is properly initialized
-   */
-  isInitialized(): boolean {
-    return this.client !== null;
-  }
-
-  /**
-   * Get current configuration
-   */
-  getConfig(): AzureOpenAIConfig {
-    return { ...this.config };
   }
 }

@@ -16,8 +16,6 @@ import {
   MCPToolResult
 } from './types';
 import { mcpConfigManager } from './config';
-import { AzureOpenAIService, ChatCompletionOptions } from './azure-openai';
-import { loadAzureOpenAIConfig } from './azure-config';
 
 // Client-safe transport configuration
 const mcpTransportConfig = {
@@ -32,7 +30,6 @@ export class MCPClientManager {
   private clients: Map<string, Client> = new Map();
   private transports: Map<string, StreamableHTTPClientTransport> = new Map();
   private statuses: Map<string, MCPClientStatus> = new Map();
-  private azureOpenAI: AzureOpenAIService | null = null;
   private config: MCPConfig | null = null;
   private connectionRetries: Map<string, number> = new Map();
   private isInitialized = false;
@@ -52,16 +49,6 @@ export class MCPClientManager {
       // Load MCP configuration
       this.config = await mcpConfigManager.loadConfig();
       console.log('📄 MCP configuration loaded');
-
-      // Initialize Azure OpenAI from environment variables
-      const azureConfig = loadAzureOpenAIConfig();
-      if (azureConfig) {
-        this.azureOpenAI = new AzureOpenAIService(azureConfig);
-        await this.azureOpenAI.initialize();
-        console.log('🔧 Azure OpenAI service initialized from environment variables');
-      } else {
-        console.log('ℹ️ Azure OpenAI not configured - skipping initialization');
-      }
 
       // Initialize MCP servers
       await this.initializeServers();
@@ -528,80 +515,6 @@ export class MCPClientManager {
     
     const connectedCount = this.getConnectedServerCount();
     console.log(`🔄 Connection refresh completed. Connected servers: ${connectedCount}/${serverNames.length}`);
-  }
-
-  /**
-   * Chat with Azure OpenAI using available MCP tools
-   */
-  async chatWithTools(options: ChatCompletionOptions): Promise<any> {
-    if (!this.azureOpenAI) {
-      throw new Error('Azure OpenAI service not initialized');
-    }
-
-    // Add available tools to the chat options
-    const availableTools = this.getAllTools();
-    options.tools = availableTools;
-
-    try {
-      const response = await this.azureOpenAI.createChatCompletion(options);
-      
-      // If the response includes tool calls, execute them
-      if (response.toolCalls && response.toolCalls.length > 0) {
-        const toolResults = await Promise.all(
-          response.toolCalls.map(toolCall => 
-            this.executeTool(toolCall.name, toolCall.arguments)
-          )
-        );
-
-        return {
-          ...response,
-          toolResults
-        };
-      }
-
-      return response;
-    } catch (error) {
-      console.error('❌ Chat with tools failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Streaming chat with Azure OpenAI using available MCP tools
-   */
-  async *streamChatWithTools(options: ChatCompletionOptions): AsyncGenerator<any, void, unknown> {
-    if (!this.azureOpenAI) {
-      throw new Error('Azure OpenAI service not initialized');
-    }
-
-    // Add available tools to the chat options
-    const availableTools = this.getAllTools();
-    options.tools = availableTools;
-
-    try {
-      const stream = this.azureOpenAI.createStreamingChatCompletion(options);
-      
-      for await (const chunk of stream) {
-        yield chunk;
-        
-        // If we get tool calls in the final chunk, execute them
-        if (chunk.toolCalls && chunk.toolCalls.length > 0) {
-          const toolResults = await Promise.all(
-            chunk.toolCalls.map(toolCall => 
-              this.executeTool(toolCall.name, toolCall.arguments)
-            )
-          );
-
-          yield {
-            toolResults,
-            finishReason: 'tool_calls'
-          };
-        }
-      }
-    } catch (error) {
-      console.error('❌ Streaming chat with tools failed:', error);
-      throw error;
-    }
   }
 
   /**
