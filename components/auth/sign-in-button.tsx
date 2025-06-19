@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { LogIn, User } from "lucide-react"
 import { useState, useEffect } from "react"
+import { MicrosoftLogo } from "@/components/microsoft-logo"
 
 interface SignInButtonProps {
   className?: string
@@ -44,13 +45,13 @@ export function SignInButton({ className, variant = "default", size = "default" 
       {isDevelopment ? (
         <User className="mr-2 h-4 w-4" />
       ) : (
-        <LogIn className="mr-2 h-4 w-4" />
+        <MicrosoftLogo className="mr-2" size={24} />
       )}
       {isLoading 
         ? "Signing in..." 
         : isDevelopment 
           ? "Continue as Developer" 
-          : "Sign In"
+          : "Sign in with Microsoft"
       }
     </Button>
   )

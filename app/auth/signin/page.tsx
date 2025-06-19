@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Shield, User } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { MicrosoftLogo } from "@/components/microsoft-logo"
 
 export default function SignInPage() {
   const router = useRouter()
@@ -101,9 +102,7 @@ export default function SignInPage() {
                 className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                 size="lg"
               >
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M0 0h11.377v11.372H0zm12.623 0H24v11.372H12.623zM0 12.623h11.377V24H0zm12.623 0H24V24H12.623z"/>
-                </svg>
+                <MicrosoftLogo className="mr-3" size={24} />
                 {isLoading ? "Signing in..." : "Sign in with Microsoft"}
               </Button>
             )}
