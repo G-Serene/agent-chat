@@ -46,11 +46,10 @@ async function initializeClients(): Promise<void> {
 }
 
 export async function POST(req: NextRequest) {
-  const { messages, session_id, mcp_enabled = false, selected_tools = [] } = await req.json()
+  const { messages, session_id, selected_tools = [] } = await req.json()
 
   console.log("🔍 Debug Info:")
   console.log("Session ID:", session_id)
-  console.log("MCP Enabled:", mcp_enabled)
   console.log("Selected Tools:", selected_tools)
   console.log("Total messages received:", messages.length)
 
@@ -77,23 +76,17 @@ export async function POST(req: NextRequest) {
 
     console.log("🧹 Cleaned messages count:", cleanMessages.length)
 
-    // Initialize clients if needed
+    // Initialize Azure OpenAI and MCP clients
     await initializeClients()
 
-    // Only proceed if MCP is enabled and clients are ready
-    if (mcp_enabled && isInitialized && azureOpenAIClient?.isReady() && mcpClientManager.isReady()) {
-      console.log("🔧 Using direct Azure OpenAI with MCP integration")
-      return await handleDirectChat(cleanMessages, session_id, selected_tools)
-    } else {
-      // Return error if not properly configured
-      const errorMessage = mcp_enabled 
-        ? "Chat services are not ready. Please check MCP server connections and Azure OpenAI configuration."
-        : "MCP integration is required for chat functionality. Please enable MCP."
-      
-      console.warn("⚠️ " + errorMessage)
-      
-      return createErrorStream(errorMessage)
+    // Ensure clients are ready
+    if (!isInitialized || !azureOpenAIClient?.isReady() || !mcpClientManager.isReady()) {
+      throw new Error("Azure OpenAI or MCP client not ready")
     }
+
+    console.log("🔧 Using direct Azure OpenAI with MCP integration")
+    return await handleDirectChat(cleanMessages, session_id, selected_tools)
+    
   } catch (error) {
     console.error("💥 Chat API error:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
@@ -167,17 +160,54 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
     async start(controller) {
       const encoder = new TextEncoder()
       
+      // Streaming state and buffer management
+      let streamFinished = false
+      let textBuffer = ""
+      
       // Helper functions for streaming
       const enqueueContent = (content: string) => {
+        if (streamFinished) return false
+        
         try {
-          const safeContent = JSON.stringify(content)
-          const chunk = `0:${safeContent}\n`
-          controller.enqueue(encoder.encode(chunk))
+          // Add to buffer for smooth streaming
+          textBuffer += content
+
+          // Stream word by word for smoother experience
+          const words = textBuffer.split(/(\s+)/)
+          
+          // Keep the last incomplete word in buffer
+          if (words.length > 1) {
+            const wordsToSend = words.slice(0, -1).join('')
+            textBuffer = words[words.length - 1] || ''
+            
+            if (wordsToSend.length > 0) {
+              const safeContent = JSON.stringify(wordsToSend)
+              const chunk = `0:${safeContent}\n`
+              controller.enqueue(encoder.encode(chunk))
+            }
+          }
           return true
         } catch (error) {
           console.error('❌ Error enqueuing content:', error)
+          streamFinished = true
           return false
         }
+      }
+
+      const flushBuffer = () => {
+        if (textBuffer.trim() && !streamFinished) {
+          try {
+            const safeContent = JSON.stringify(textBuffer)
+            const chunk = `0:${safeContent}\n`
+            controller.enqueue(encoder.encode(chunk))
+            textBuffer = ""
+            return true
+          } catch (error) {
+            console.error('❌ Error flushing buffer:', error)
+            return false
+          }
+        }
+        return true
       }
 
       const enqueueError = (errorMessage: string) => {
@@ -194,6 +224,9 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
 
       const finishStream = () => {
         try {
+          // Flush any remaining buffer content before finishing
+          flushBuffer()
+          
           const finishJson = JSON.stringify({
             finishReason: 'stop',
             usage: { promptTokens: 0, completionTokens: 0 }
