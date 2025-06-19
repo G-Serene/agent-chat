@@ -49,14 +49,14 @@ export function Sidebar({
   }
 
   return (
-    <div className="flex flex-col h-full bg-background text-foreground">
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
       {/* Header / New Chat */}
-      <div className="p-4 border-b">
+      <div className="p-4 border-b border-sidebar-border">
         <Button
           onClick={onNewChat}
-          className="w-full justify-center gap-2 bg-black hover:bg-gray-900 text-white text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 dark:bg-black dark:hover:bg-gray-900"
+          className="w-full justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground text-base py-3 rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
         >
-          <PlusCircle className="w-5 h-5 text-red-500" />
+          <PlusCircle className="w-5 h-5 text-accent" />
           New Chat
         </Button>
       </div>
@@ -76,7 +76,7 @@ export function Sidebar({
                 key={session.id}
                 className={cn(
                   "group relative rounded-lg transition-colors duration-150",
-                  session.id === currentSessionId ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-muted/80",
+                  session.id === currentSessionId ? "bg-blue-50 dark:bg-blue-900/20" : "hover:bg-muted/80",
                 )}
               >
                 <Button
@@ -84,20 +84,20 @@ export function Sidebar({
                   className={cn(
                     "w-full justify-start gap-3 h-auto p-3 text-left rounded-lg transition-colors duration-150",
                     session.id === currentSessionId
-                      ? "bg-slate-100 text-slate-900 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+                      ? "bg-blue-50 text-blue-900 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-100 dark:hover:bg-blue-800/30"
                       : "hover:bg-muted/80",
                   )}
                   onClick={() => onSessionSelect(session.id)}
                 >
                   <Avatar className="w-8 h-8 flex-shrink-0">
                     <AvatarFallback
-                      className={cn(session.id === currentSessionId ? "bg-slate-200 dark:bg-slate-700" : "bg-muted")}
+                      className={cn(session.id === currentSessionId ? "bg-blue-100 dark:bg-blue-800/40" : "bg-muted")}
                     >
                       <MessageSquare
                         className={cn(
                           "w-4 h-4",
                           session.id === currentSessionId
-                            ? "text-red-600 dark:text-red-400"
+                            ? "text-blue-600 dark:text-blue-400"
                             : "text-muted-foreground",
                         )}
                       />

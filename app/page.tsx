@@ -201,7 +201,7 @@ export default function ChatPage() {
   return (
     <>
       <Toaster richColors position="top-right" />
-      <div className="flex h-screen bg-gradient-to-br from-slate-50 via-background to-slate-50 dark:from-slate-950 dark:via-background dark:to-slate-950 relative overflow-hidden">
+      <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">
         {sidebarOpen && (
           <div
             className="overflow-hidden border-r bg-background/80 backdrop-blur-md shadow-sm z-40 flex-shrink-0 transition-all duration-300 ease-in-out relative"
@@ -218,7 +218,7 @@ export default function ChatPage() {
 
             {/* Resize Handle */}
             <div
-              className="absolute top-0 right-0 w-1 h-full bg-border hover:bg-blue-500 cursor-col-resize transition-colors duration-200 group"
+              className="absolute top-0 right-0 w-1 h-full bg-border hover:bg-accent cursor-col-resize transition-colors duration-200 group"
               onMouseDown={(e) => {
                 e.preventDefault()
                 const startX = e.clientX
@@ -242,7 +242,7 @@ export default function ChatPage() {
                 document.body.style.userSelect = "none"
               }}
             >
-              <div className="absolute inset-y-0 -right-1 w-3 group-hover:bg-blue-500/20" />
+              <div className="absolute inset-y-0 -right-1 w-3 group-hover:bg-accent/20" />
             </div>
           </div>
         )}
@@ -251,13 +251,13 @@ export default function ChatPage() {
           className="flex flex-col min-w-0 transition-all duration-300 ease-in-out flex-grow"
           style={{ width: chatWidth }}
         >
-          <header className="flex items-center justify-between p-3 border-b bg-background/80 backdrop-blur-md shadow-sm z-30">
+          <header className="flex items-center justify-between p-3 border-b bg-background/90 backdrop-blur-md shadow-sm z-30 border-blue-100 dark:border-blue-900/50">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                className="text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 flex-shrink-0"
               >
                 {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </Button>
@@ -272,12 +272,12 @@ export default function ChatPage() {
                   variant={artifactsOpen ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handleArtifactToggle()}
-                  className="relative text-muted-foreground hover:text-foreground"
+                  className="relative text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20"
                 >
-                  <LayoutGrid className="h-4 w-4 text-blue-500 mr-2" />
+                  <LayoutGrid className="h-4 w-4 text-accent mr-2" />
                   Artifacts ({allArtifacts.length})
                   {!artifactsOpen && (
-                    <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-blue-500 ring-2 ring-background" />
+                    <span className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-accent ring-2 ring-background" />
                   )}
                 </Button>
               )}

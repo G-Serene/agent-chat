@@ -28,7 +28,7 @@ export default function RootLayout({
       <body className={`${inter.className} antialiased font-sans`}>
         <AuthSessionProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false} disableTransitionOnChange>
-            <div className="min-h-screen bg-white text-black dark:bg-black dark:text-white transition-colors">{children}</div>
+            <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 text-slate-800 dark:from-slate-900 dark:to-slate-950 dark:text-slate-100 transition-colors">{children}</div>
             <Toaster />
           </ThemeProvider>
         </AuthSessionProvider>
