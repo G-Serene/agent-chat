@@ -136,8 +136,14 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
 
   // Get available MCP tools and filter by selection
   const allTools = mcpClientManager.getAllTools()
+  
+  // Parse selected tools - handle both new format (serverName::toolName) and legacy format (toolName)
+  const selectedToolNames = selectedTools.map(toolId => {
+    return toolId.includes('::') ? toolId.split('::', 2)[1] : toolId
+  })
+  
   const availableTools = selectedTools.length > 0 
-    ? allTools.filter(tool => selectedTools.includes(tool.name))
+    ? allTools.filter(tool => selectedToolNames.includes(tool.name))
     : allTools
   
   if (process.env.NODE_ENV === 'development') {

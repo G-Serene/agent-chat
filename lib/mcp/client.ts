@@ -299,13 +299,24 @@ export class MCPClientManager {
 
   /**
    * Execute a tool call on the appropriate MCP server
+   * Now supports unique tool IDs in format "serverName::toolName"
    */
-  async executeTool(toolName: string, args: Record<string, any>): Promise<MCPToolResult> {
+  async executeTool(toolIdentifier: string, args: Record<string, any>): Promise<MCPToolResult> {
     try {
-      // Find server that has this tool
-      const serverName = this.findServerWithTool(toolName);
-      if (!serverName) {
-        throw new Error(`Tool not found: ${toolName}`);
+      let serverName: string;
+      let toolName: string;
+      
+      // Parse tool identifier - check if it's in new format (serverName::toolName) or old format (just toolName)
+      if (toolIdentifier.includes('::')) {
+        [serverName, toolName] = toolIdentifier.split('::', 2);
+      } else {
+        // Legacy format - find server that has this tool
+        const foundServer = this.findServerWithTool(toolIdentifier);
+        if (!foundServer) {
+          throw new Error(`Tool not found: ${toolIdentifier}`);
+        }
+        serverName = foundServer;
+        toolName = toolIdentifier;
       }
 
       const client = this.clients.get(serverName);
@@ -330,7 +341,7 @@ export class MCPClientManager {
       };
 
     } catch (error) {
-      console.error(`❌ Tool execution failed: ${toolName}`, error);
+      console.error(`❌ Tool execution failed: ${toolIdentifier}`, error);
       return {
         content: [{
           type: 'text',

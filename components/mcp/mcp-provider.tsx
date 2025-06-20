@@ -350,10 +350,16 @@ export function MCPProvider({ children }: MCPProviderProps) {
   // Auto-select all tools when they become available
   useEffect(() => {
     if (tools.length > 0 && selectedTools.length === 0) {
-      const allToolNames = tools.map(tool => tool.name)
-      setSelectedTools(allToolNames)
+      // Generate unique tool IDs from server statuses for auto-selection
+      const allToolIds: string[] = []
+      Object.entries(serverStatuses).forEach(([serverName, status]) => {
+        status.tools.forEach(tool => {
+          allToolIds.push(`${serverName}::${tool.name}`)
+        })
+      })
+      setSelectedTools(allToolIds)
     }
-  }, [tools, selectedTools.length, setSelectedTools])
+  }, [tools, selectedTools.length, setSelectedTools, serverStatuses])
 
   // Auto-reconnection mechanism - periodically check and reconnect if needed
   useEffect(() => {
