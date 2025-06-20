@@ -272,7 +272,10 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
                 <div className="space-y-2">
                   <Label>Connection Status</Label>
                   <MCPStatus
-                    onRefresh={mcp.refreshConnections}
+                    onRefresh={() => {
+                      mcp.refreshConnections()
+                      toast.success("MCP connections refreshed")
+                    }}
                     className="w-full"
                   />
                 </div>
