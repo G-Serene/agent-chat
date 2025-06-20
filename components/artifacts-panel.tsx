@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "@ai-sdk/ui-utils"
+import type { Message } from "@ai-sdk/react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"

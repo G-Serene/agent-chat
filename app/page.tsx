@@ -40,14 +40,11 @@ export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
     id: currentSessionId,
-    key: chatComponentKey.toString(),
     body: {
       session_id: currentSessionId,
       selected_tools: mcp.selectedTools
     },
     initialMessages: [],
-    // More aggressive throttling for better performance
-    experimental_throttle: 100, // Increased from 50ms to 100ms for better UI responsiveness
     onError: (err) => {
       console.error("❌ Chat error:", err)
       toast.error("An error occurred", { description: err.message })

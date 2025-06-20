@@ -33,6 +33,39 @@ export class MCPClientManager {
   private config: MCPConfig | null = null;
   private connectionRetries: Map<string, number> = new Map();
   private isInitialized = false;
+  private isShuttingDown = false;
+
+  constructor() {
+    // Set up graceful shutdown handlers
+    this.setupShutdownHandlers();
+  }
+
+  /**
+   * Set up graceful shutdown handlers to close streams properly
+   */
+  private setupShutdownHandlers() {
+    const shutdown = async (signal: string) => {
+      if (this.isShuttingDown) return;
+      this.isShuttingDown = true;
+      
+      console.log(`🔄 Received ${signal}, closing MCP connections...`);
+      try {
+        await this.disconnect();
+        console.log('✅ MCP connections closed successfully');
+      } catch (error) {
+        console.error('❌ Error during MCP shutdown:', error);
+      }
+    };
+
+    // Handle various shutdown signals
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('beforeExit', () => {
+      if (!this.isShuttingDown) {
+        shutdown('beforeExit');
+      }
+    });
+  }
 
   /**
    * Initialize MCP client manager
@@ -553,6 +586,11 @@ export class MCPClientManager {
    * Disconnect from all servers
    */
   async disconnect(): Promise<void> {
+    if (this.isShuttingDown && this.clients.size === 0 && this.transports.size === 0) {
+      console.log('ℹ️ MCP connections already closed');
+      return;
+    }
+    
     console.log('🔌 Disconnecting from all MCP servers...');
     
     const disconnectPromises = Array.from(this.clients.entries()).map(

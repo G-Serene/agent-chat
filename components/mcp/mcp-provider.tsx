@@ -294,6 +294,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
     let retryCount = 0;
     const maxRetries = 3;
     const retryDelay = 2000; // 2 seconds
+    let retryTimeout: NodeJS.Timeout | null = null;
 
     const initializeMCP = async (): Promise<void> => {
       try {
@@ -327,7 +328,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
         retryCount++;
         if (retryCount < maxRetries && isComponentMounted) {
           console.log(`🔄 Retrying MCP initialization in ${retryDelay}ms... (${retryCount}/${maxRetries})`);
-          setTimeout(() => {
+          retryTimeout = setTimeout(() => {
             if (isComponentMounted) {
               initializeMCP();
             }
@@ -344,8 +345,12 @@ export function MCPProvider({ children }: MCPProviderProps) {
 
     return () => {
       isComponentMounted = false;
+      // Clear any pending retry timeout
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
-  }, []) // Empty dependency array for mount-only effect
+  }, [initialize, getStatus, checkMCPServerHealth, isInitialized]) // Added dependencies
 
   // Auto-select all tools when they become available
   useEffect(() => {
