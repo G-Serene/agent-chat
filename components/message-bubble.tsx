@@ -266,7 +266,7 @@ export const MessageBubble = memo(function MessageBubble({
       <div className={cn(
         "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
         isUser 
-          ? "bg-accent text-accent-foreground" 
+          ? "bg-muted text-muted-foreground" 
           : "bg-secondary text-secondary-foreground"
       )}>
         {isUser ? "U" : "AI"}
@@ -280,7 +280,7 @@ export const MessageBubble = memo(function MessageBubble({
         <div className={cn(
           "rounded-lg px-4 py-3 max-w-none",
           isUser 
-            ? "bg-accent text-accent-foreground ml-auto max-w-[80%]" 
+            ? "bg-muted text-foreground ml-auto max-w-[80%]" 
             : "bg-secondary text-secondary-foreground"
         )}>
           {/* Render message parts */}
