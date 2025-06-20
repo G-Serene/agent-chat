@@ -62,12 +62,25 @@ export function detectArtifacts(content: string, messageId?: string): ArtifactCo
       }
 
       artifacts.push(artifact)
+      
+      // Debug logging to track artifact creation
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[Artifact] Created from code block: ${type} (${language}) - ID: ${artifactId}`)
+      }
     }
   }
 
-  // Also check for content patterns without code blocks
-  const contentArtifacts = detectContentPatterns(content, messageId, blockIndex)
+  // Also check for content patterns without code blocks, but pass existing artifacts to avoid duplicates
+  const contentArtifacts = detectContentPatterns(content, messageId, blockIndex, artifacts)
+  if (contentArtifacts.length > 0 && process.env.NODE_ENV === 'development') {
+    console.log(`[Artifact] Created ${contentArtifacts.length} artifacts from content patterns`)
+  }
   artifacts.push(...contentArtifacts)
+
+  // Final debug log
+  if (process.env.NODE_ENV === 'development' && artifacts.length > 0) {
+    console.log(`[Artifact] Total artifacts detected: ${artifacts.length}`)
+  }
 
   return artifacts
 }
@@ -278,7 +291,7 @@ function extractChartType(code: string, language: string): string | null {
   return null
 }
 
-function detectContentPatterns(content: string, messageId?: string, startIndex: number = 0): ArtifactContent[] {
+function detectContentPatterns(content: string, messageId?: string, startIndex: number = 0, existingArtifacts: ArtifactContent[] = []): ArtifactContent[] {
   const artifacts: ArtifactContent[] = []
   const lowerContent = content.toLowerCase()
   
@@ -291,8 +304,8 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
   
   for (const pattern of chartPatterns) {
     if (pattern.test(content)) {
-      // If we detected chart intent but no chart artifact, create a placeholder
-      const hasChartArtifact = artifacts.some(a => a.type === 'chart')
+      // Check if we already have a chart artifact from code blocks or previous patterns
+      const hasChartArtifact = existingArtifacts.some(a => a.type === 'chart') || artifacts.some(a => a.type === 'chart')
       if (!hasChartArtifact) {
         const artifactId = messageId
           ? `${messageId}-chart-intent-${startIndex + 1}`
@@ -308,7 +321,13 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
           messageId: messageId,
           blockIndex: startIndex + 1
         })
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Artifact] Created chart from pattern intent - ID: ${artifactId}`)
+        }
         break
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log(`[Artifact] Skipped chart pattern - existing chart artifact found`)
       }
     }
   }
@@ -321,7 +340,8 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
   
   for (const pattern of tablePatterns) {
     if (pattern.test(content)) {
-      const hasTableArtifact = artifacts.some(a => a.type === 'table')
+      // Check if we already have a table artifact from code blocks or previous patterns
+      const hasTableArtifact = existingArtifacts.some(a => a.type === 'table') || artifacts.some(a => a.type === 'table')
       if (!hasTableArtifact) {
         const artifactId = messageId
           ? `${messageId}-table-intent-${startIndex + 1}`
@@ -337,7 +357,13 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
           messageId: messageId,
           blockIndex: startIndex + 1
         })
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`[Artifact] Created table from pattern intent - ID: ${artifactId}`)
+        }
         break
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log(`[Artifact] Skipped table pattern - existing table artifact found`)
       }
     }
   }
