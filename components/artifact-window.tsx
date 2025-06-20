@@ -235,7 +235,7 @@ export function ArtifactWindow({
   }
 
   const getArtifactIcon = (type: ArtifactContent["type"], language?: string) => {
-    if (type === "diagram" && language?.toLowerCase() === "mermaid") {
+    if (type === "diagram") {
       return <GitBranch className="w-4 h-4 text-purple-500" />
     }
     if (type === "chart") {
@@ -244,7 +244,7 @@ export function ArtifactWindow({
     if (type === "table") {
       return <Table className="w-4 h-4 text-orange-500" />
     }
-    if (type === "code" || type === "data" || type === "html") {
+    if (type === "code" || type === "text") {
       return <Code className="w-4 h-4 text-blue-500" />
     }
     return <FileText className="w-4 h-4 text-gray-500" />
@@ -465,8 +465,8 @@ function ArtifactRenderer({ artifact }: { artifact: ArtifactContent }) {
   if (artifact.type === "diagram" && artifact.language?.toLowerCase() === "mermaid") {
     return <ChatMessageMermaidRenderer code={artifact.content} />
   }
-  // Default to code rendering for 'code', 'data', 'html' types or if language is present
-  if (artifact.type === "code" || artifact.type === "data" || artifact.type === "html" || artifact.language) {
+  // Default to code rendering for 'code', 'text' types or if language is present
+  if (artifact.type === "code" || artifact.type === "text" || artifact.language) {
     return (
       <div className="rounded-lg overflow-hidden border bg-[#0d1117]">
         <SyntaxHighlighter

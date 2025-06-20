@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "@ai-sdk/ui-utils"
+import { StructuredMessage } from "@/lib/message-types"
 import { MessageBubble } from "@/components/message-bubble"
 import { useEffect, useRef, useCallback, startTransition } from "react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -8,7 +8,7 @@ import { Loader2 } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface MessageListProps {
-  messages: Message[]
+  messages: StructuredMessage[]
   onArtifactToggle: (artifactId?: string) => void
   isLoading: boolean
 }

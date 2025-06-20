@@ -3,6 +3,8 @@
 import { useState, useMemo, useEffect, useCallback, startTransition } from "react"
 import { useChat } from "@ai-sdk/react"
 import type { Message } from "@ai-sdk/react"
+import { StructuredMessage } from "@/lib/message-types"
+import { convertMessagesToStructured } from "@/lib/message-converter"
 import { ChatInterface } from "@/components/chat-interface"
 import { Sidebar } from "@/components/sidebar"
 import { ArtifactWindow } from "@/components/artifact-window"
@@ -67,6 +69,11 @@ export default function ChatPage() {
     keepLastMessageOnError: true,
   })
 
+  // Convert AI SDK messages to structured format
+  const structuredMessages: StructuredMessage[] = useMemo(() => {
+    return convertMessagesToStructured(messages);
+  }, [messages]);
+
   // Initialize session on mount
   useEffect(() => {
     const savedSessionId = ChatStorage.getCurrentSessionId()
@@ -126,17 +133,26 @@ export default function ChatPage() {
 
   const allArtifacts = useMemo(() => {
     const artifacts: ArtifactContent[] = []
-    messages.forEach((message) => {
-      if (message.role === "assistant" && message.content) {
-        const isLastMessage = message === messages[messages.length - 1]
+    structuredMessages.forEach((message) => {
+      if (message.role === "assistant") {
+        const isLastMessage = message === structuredMessages[structuredMessages.length - 1]
         const isCurrentlyStreaming = isLastMessage && isLoading
         if (!isCurrentlyStreaming) {
-          const messageArtifacts = detectArtifacts(message.content, message.id)
-          artifacts.push(...messageArtifacts)
+          // Extract text content from parts
+          const textContent = message.parts
+            .filter(part => part.type === 'text')
+            .map(part => (part as any).text)
+            .join('\n');
+          
+          if (textContent) {
+            const messageArtifacts = detectArtifacts(textContent, message.id)
+            artifacts.push(...messageArtifacts)
+          }
         }
       }
     })
-    return artifacts  }, [messages, isLoading])
+    return artifacts
+  }, [structuredMessages, isLoading])
 
   const handleArtifactToggle = (artifactId?: string) => {
     if (artifactId) {
@@ -320,7 +336,7 @@ export default function ChatPage() {
             {currentSessionId && (
               <ChatInterface
                 key={chatComponentKey}
-                messages={messages}
+                messages={structuredMessages}
                 input={input}
                 handleInputChange={handleInputChange}
                 handleSubmit={handleSubmit}

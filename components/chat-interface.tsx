@@ -1,8 +1,8 @@
 "use client"
 
 import type React from "react"
-import type { Message } from "@ai-sdk/ui-utils"
 import type { FormEvent } from "react"
+import { StructuredMessage } from "@/lib/message-types"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MessageList } from "@/components/message-list"
@@ -13,7 +13,7 @@ import { useState, useRef } from "react"
 import { toast } from "sonner"
 
 interface ChatInterfaceProps {
-  messages: Message[]
+  messages: StructuredMessage[]
   input: string
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>) => void
   handleSubmit: (e: FormEvent<HTMLFormElement>, chatRequestOptions?: { data?: Record<string, string> }) => void
@@ -73,8 +73,9 @@ export function ChatInterface({
     messages.length > 1 ||
     (messages.length === 1 &&
       messages[0].role !== "assistant" &&
-      messages[0].content !==
-        "What would you like to work on today?")
+      messages[0].parts?.some(part => 
+        part.type === 'text' && (part as any).text !== "What would you like to work on today?"
+      ))
 
   const handleFileAttachment = () => {
     fileInputRef.current?.click()
