@@ -221,6 +221,27 @@ export class MCPClientManager {
   }
 
   /**
+   * Enhanced error recovery with exponential backoff
+   */
+  private async connectWithRetry(serverName: string, maxRetries: number = 3): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await this.connectToServer(serverName)
+        return // Success
+      } catch (error) {
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000) // Exponential backoff, max 10s
+        console.warn(`Connection attempt ${attempt}/${maxRetries} failed for ${serverName}, retrying in ${delay}ms...`)
+        
+        if (attempt === maxRetries) {
+          throw error // Final attempt failed
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+    }
+  }
+
+  /**
    * Fetch capabilities from a connected server
    */
   private async fetchServerCapabilities(serverName: string, client: Client): Promise<MCPClientStatus> {

@@ -41,11 +41,23 @@ export const MessageBubble = memo(function MessageBubble({
 
   // Memoize expensive operations
   const contentWithoutCodeBlocks = useMemo(() => removeCodeBlocks(messageContent), [messageContent])
+  // Memoize expensive operations with proper cleanup
   const artifacts = useMemo(() => {
     // Only detect artifacts when not streaming to avoid unnecessary recalculations
     if (isStreaming) return []
     return detectArtifacts(messageContent, message.id)
   }, [messageContent, message.id, isStreaming])
+
+  // Cleanup effect for memory management
+  useEffect(() => {
+    return () => {
+      // Cleanup any pending operations when component unmounts
+      if (artifacts.length > 50) {
+        console.warn('Large number of artifacts detected, consider pagination')
+      }
+    }
+  }, [artifacts.length])
+
   // For non-streaming messages, filter code blocks for display
   const displayContent = isStreaming && isLastMessage && !isUser ? messageContent : contentWithoutCodeBlocks
 

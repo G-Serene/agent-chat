@@ -15,15 +15,25 @@ export interface ArtifactContent {
   }>
 }
 
+// Performance optimization: Cache regex patterns
+const CODE_BLOCK_REGEX = /```(\w+)?\s*\n([\s\S]*?)\n```/g
+const CHART_PATTERNS = [
+  /create.*chart/i, /generate.*graph/i, /visualize.*data/i,
+  /plot.*data/i, /bar chart/i, /line chart/i, /pie chart/i,
+  /show.*chart/i, /display.*graph/i
+]
+const TABLE_PATTERNS = [
+  /create.*table/i, /generate.*table/i, /show.*table/i,
+  /display.*data.*table/i, /tabular.*data/i, /data.*grid/i
+]
+
 export function detectArtifacts(content: string, messageId?: string): ArtifactContent[] {
   const artifacts: ArtifactContent[] = []
   let blockIndex = 0
 
-  // Enhanced regex that's more flexible with language tags
-  const codeBlockRegex = /```(\w+)?\s*\n([\s\S]*?)\n```/g
   let match
 
-  while ((match = codeBlockRegex.exec(content)) !== null) {
+  while ((match = CODE_BLOCK_REGEX.exec(content)) !== null) {
     const language = (match[1] || "unknown").toLowerCase()
     const code = match[2]
     blockIndex++
@@ -296,13 +306,7 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
   const lowerContent = content.toLowerCase()
   
   // Look for chart-related language patterns
-  const chartPatterns = [
-    /create.*chart/i, /generate.*graph/i, /visualize.*data/i,
-    /plot.*data/i, /bar chart/i, /line chart/i, /pie chart/i,
-    /show.*chart/i, /display.*graph/i
-  ]
-  
-  for (const pattern of chartPatterns) {
+  for (const pattern of CHART_PATTERNS) {
     if (pattern.test(content)) {
       // Check if we already have a chart artifact from code blocks or previous patterns
       const hasChartArtifact = existingArtifacts.some(a => a.type === 'chart') || artifacts.some(a => a.type === 'chart')
@@ -333,12 +337,7 @@ function detectContentPatterns(content: string, messageId?: string, startIndex: 
   }
   
   // Look for table-related language patterns
-  const tablePatterns = [
-    /create.*table/i, /generate.*table/i, /show.*table/i,
-    /display.*data.*table/i, /tabular.*data/i, /data.*grid/i
-  ]
-  
-  for (const pattern of tablePatterns) {
+  for (const pattern of TABLE_PATTERNS) {
     if (pattern.test(content)) {
       // Check if we already have a table artifact from code blocks or previous patterns
       const hasTableArtifact = existingArtifacts.some(a => a.type === 'table') || artifacts.some(a => a.type === 'table')

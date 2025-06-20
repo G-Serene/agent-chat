@@ -617,6 +617,44 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
           </div>
         )
 
+      case "histogram":
+        // Enhanced histogram support with bins
+        return (
+          <BarChart data={chartData.data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis 
+              dataKey={chartData.config?.xAxis?.dataKey || "bin"} 
+              label={{ value: chartData.config?.xAxis?.label || "Bins", position: "insideBottom", offset: -10 }}
+              fontSize={12}
+            />
+            <YAxis 
+              label={{ value: chartData.config?.yAxis?.label || "Frequency", angle: -90, position: "insideLeft" }}
+              fontSize={12}
+            />
+            <Tooltip formatter={(value, name) => [value, name || "Frequency"]} />
+            {chartData.config?.legend && <Legend />}
+            <Bar 
+              dataKey={chartData.config?.series?.[0]?.dataKey || "frequency"}
+              fill={chartData.config?.series?.[0]?.fill || COLORS[0]}
+              stroke={chartData.config?.series?.[0]?.stroke || "transparent"}
+              strokeWidth={1}
+            />
+          </BarChart>
+        )
+
+      case "waterfall":
+        // Waterfall chart implementation
+        return (
+          <BarChart data={chartData.data} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+            <XAxis dataKey={chartData.config?.xAxis?.dataKey || "category"} fontSize={12} />
+            <YAxis fontSize={12} />
+            <Tooltip />
+            <Bar dataKey="value" fill="#8884d8" />
+            <Bar dataKey="cumulative" fill="transparent" stroke="#82ca9d" strokeWidth={2} />
+          </BarChart>
+        )
+
       default:
         return (
           <div className="text-center p-8 text-gray-500 dark:text-gray-400">
@@ -626,7 +664,7 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
             </p>
             <p className="text-sm mb-3">Supported types:</p>
             <div className="flex flex-wrap justify-center gap-2 text-xs">
-              {['bar', 'line', 'area', 'pie', 'donut', 'scatter', 'radar', 'composed', 'treemap', 'funnel', 'heatmap'].map(type => (
+              {['bar', 'line', 'area', 'pie', 'donut', 'scatter', 'radar', 'composed', 'treemap', 'funnel', 'heatmap', 'histogram', 'waterfall'].map(type => (
                 <code key={type} className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded font-mono">
                   {type}
                 </code>
