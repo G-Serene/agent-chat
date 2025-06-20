@@ -42,7 +42,21 @@ export function detectArtifacts(content: string, messageId?: string): ArtifactCo
       if (type === "diagram" && language.toLowerCase() === "mermaid") {
         title = `Mermaid Diagram ${blockIndex}`
       } else if (type === "chart") {
-        title = `Data Chart ${blockIndex}`
+        // More specific chart titles based on language
+        const chartTypeMap: Record<string, string> = {
+          'bar': 'Bar Chart',
+          'line': 'Line Chart', 
+          'pie': 'Pie Chart',
+          'area': 'Area Chart',
+          'scatter': 'Scatter Plot',
+          'radar': 'Radar Chart',
+          'composed': 'Composed Chart',
+          'visualization': 'Data Visualization',
+          'graph': 'Data Graph',
+          'plot': 'Data Plot',
+          'dashboard': 'Dashboard'
+        }
+        title = chartTypeMap[language.toLowerCase()] || `Data Chart ${blockIndex}`
       } else if (type === "table") {
         title = `Data Table ${blockIndex}`
       } else {
@@ -110,7 +124,7 @@ function getArtifactType(language: string): ArtifactContent["type"] {
   const diagramLanguages = ["mermaid", "dot", "plantuml"]
   const dataLanguages = ["json", "csv", "xml", "yaml", "toml"]
   const webLanguages = ["html", "svg"]
-  const chartLanguages = ["chart", "pie", "bar", "line", "area", "scatter", "radar", "composed", "treemap", "funnel", "heatmap", "donut"]
+  const chartLanguages = ["chart", "pie", "bar", "line", "area", "scatter", "radar", "composed", "treemap", "funnel", "heatmap", "donut", "visualization", "graph", "plot", "dashboard"]
   const tableLanguages = ["table", "tabular"]
 
   if (tableLanguages.includes(langLower)) return "table"
@@ -154,6 +168,10 @@ function getFilename(language: string, counter: number, type: ArtifactContent["t
     chart: "chart.json",
     table: "table.json",
     tabular: "table.json",
+    visualization: "chart.json",
+    graph: "chart.json",
+    plot: "chart.json",
+    dashboard: "dashboard.json",
   }
   const ext = extensions[language.toLowerCase()] || "txt"
   return `${type}_${counter}.${ext}`

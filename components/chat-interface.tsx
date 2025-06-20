@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MessageList } from "@/components/message-list"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { SendHorizonal, Sparkles, Code, BarChart3, AlertTriangle, CornerDownLeft, FileText, Plus } from "lucide-react"
+import { SendHorizonal, Sparkles, Code, BarChart3, AlertTriangle, CornerDownLeft, FileText, Plus, Table, GitBranch, PieChart, LineChart, TrendingUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useState, useRef } from "react"
 import { toast } from "sonner"
@@ -38,6 +38,21 @@ const quickPrompts = [
     title: "Create chart",
     prompt: "Generate interactive charts and visualizations from my data",
     icon: <BarChart3 className="w-4 h-4 mr-2 text-red-500" />,
+  },
+  {
+    title: "Sales chart",
+    prompt: "Show me monthly sales data as a bar chart with revenue and units sold",
+    icon: <TrendingUp className="w-4 h-4 mr-2 text-red-500" />,
+  },
+  {
+    title: "Data table",
+    prompt: "Display customer information in an interactive sortable table",
+    icon: <Table className="w-4 h-4 mr-2 text-red-500" />,
+  },
+  {
+    title: "Process diagram",
+    prompt: "Create a flowchart showing the data processing workflow",
+    icon: <GitBranch className="w-4 h-4 mr-2 text-red-500" />,
   },
   {
     title: "What can you do?",

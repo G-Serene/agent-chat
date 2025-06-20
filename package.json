@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/azure": "^1.3.23",
     "@ai-sdk/react": "^1.2.12",
     "@azure/identity": "^4.10.1",
     "@azure/openai": "^2.0.0",

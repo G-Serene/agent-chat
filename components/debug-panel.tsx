@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, CheckCircle, XCircle, Bug, Settings } from "lucide-react"
+import { ArtifactDebugger } from "./artifact-debugger"
 
 export function DebugPanel() {
   const [testing, setTesting] = useState(false)
@@ -72,6 +73,11 @@ export function DebugPanel() {
             </div>
           </div>
         )}
+
+        {/* Artifact Detection Debug Section */}
+        <div className="border-t pt-4">
+          <ArtifactDebugger />
+        </div>
       </CardContent>
     </Card>
   )

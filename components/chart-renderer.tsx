@@ -106,9 +106,11 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
         console.log("🧹 Cleaned JSON:", cleanedJson)
 
         const parsed = JSON.parse(cleanedJson)
+        console.log("📊 Parsed chart data:", parsed)
         setChartData(parsed)
       } catch (error) {
-        console.error("Failed to parse chart JSON:", error)
+        console.error("❌ Failed to parse chart JSON:", error)
+        console.error("📄 Original content:", artifact.content)
         setError("Invalid Chart Data - The provided data contains invalid JSON syntax.")
       } finally {
         setIsLoading(false)
@@ -179,6 +181,16 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
   const { chartType, data, config } = chartData
 
+  // Add comprehensive debug logging
+  console.log("🎯 Chart Renderer Debug:", {
+    chartType,
+    dataLength: data?.length,
+    dataSample: data?.[0],
+    config,
+    hasData: !!data,
+    hasChartType: !!chartType
+  })
+
   if (!chartType || !data) {
     return (
       <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-sm rounded-lg border border-red-200 dark:border-red-800">
@@ -187,12 +199,16 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
           <p className="font-semibold">Invalid Chart Configuration</p>
         </div>
         <p>Chart must have 'chartType' and 'data' properties.</p>
+        <div className="mt-2 text-xs">
+          <p>Received: chartType={chartType}, data={data ? `array[${data.length}]` : 'null'}</p>
+        </div>
       </div>
     )
   }
 
   // Custom tooltip component for consistent styling
   const CustomTooltip = ({ active, payload, label }: any) => {
+    console.log("🔸 Tooltip data:", { active, payload, label })
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
@@ -229,11 +245,12 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
     switch (chartType) {
       case "bar":
+        console.log("🔵 Rendering bar chart with data:", data, "config:", config)
         return (
           <BarChart data={data} {...commonProps}>
             {config?.grid && <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.colors.grid} strokeWidth={1} />}
             <XAxis
-              dataKey={config?.xAxis?.dataKey || "name"}
+              dataKey={config?.xAxis?.dataKey || "name" || "month"}
               tick={{ fontSize: CHART_THEME.fontSize, fill: CHART_THEME.colors.text }}
               axisLine={{ stroke: CHART_THEME.colors.grid }}
               tickLine={{ stroke: CHART_THEME.colors.grid }}
@@ -255,7 +272,20 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
                 radius={[2, 2, 0, 0]}
                 {...s}
               />
-            ))}
+            )) || (
+              // Fallback: render all numeric keys as bars
+              Object.keys(data[0] || {})
+                .filter(key => typeof data[0][key] === 'number')
+                .map((key, i) => (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    fill={COLORS[i % COLORS.length]}
+                    radius={[2, 2, 0, 0]}
+                    name={key}
+                  />
+                ))
+            )}
           </BarChart>
         )
 
@@ -643,11 +673,13 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
         </div>
       )}
 
-      {/* Chart Content */}
-      <div className="p-6">
-        <ResponsiveContainer width="100%" height={450}>
-          {renderChart()}
-        </ResponsiveContainer>
+      {/* Chart Content - Fixed container sizing */}
+      <div className="p-6 w-full" style={{ minHeight: '450px' }}>
+        <div style={{ width: '100%', height: '450px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            {renderChart()}
+          </ResponsiveContainer>
+        </div>
       </div>
 
       {/* Chart Footer */}
