@@ -1,14 +1,61 @@
-export async function POST(req: Request) {
-  const { messages, session_id } = await req.json()
+/**
+ * Enhanced Chat API with Direct Azure OpenAI and MCP Integration
+ * Handles LLM interactions and tool execution directly without orchestrator layer
+ */
 
-  // Get backend URL from environment variables
-  const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8501"
+import { NextRequest } from 'next/server'
+import { AzureOpenAIClient, LLMChatOptions } from '@/lib/llm/azure-openai-client'
+import { mcpClientManager } from '@/lib/mcp/client'
+import { loadAzureOpenAIConfig } from '@/lib/llm/azure-openai-config'
+import { CONTEXT_AWARE_SYSTEM_PROMPT } from '@/lib/system-prompt'
 
-  console.log("🔍 Debug Info:")
-  console.log("Backend URL:", backendUrl)
-  console.log("Session ID:", session_id)
-  console.log("Total messages received:", messages.length)
-  console.log("Messages received:", JSON.stringify(messages, null, 2))
+// Global clients - initialized once
+let azureOpenAIClient: AzureOpenAIClient | null = null
+let isInitialized = false
+
+/**
+ * Initialize Azure OpenAI and MCP clients
+ */
+async function initializeClients(): Promise<void> {
+  if (isInitialized) return
+
+  try {
+    console.log('🔄 Initializing Azure OpenAI and MCP clients...')
+
+    // Initialize Azure OpenAI client
+    const azureConfig = loadAzureOpenAIConfig()
+    if (!azureConfig) {
+      throw new Error('Azure OpenAI configuration not found')
+    }
+    
+    azureOpenAIClient = new AzureOpenAIClient(azureConfig)
+    await azureOpenAIClient.initialize()
+    console.log('✅ Azure OpenAI client initialized')
+
+    // Initialize MCP client
+    if (!mcpClientManager.isReady()) {
+      await mcpClientManager.initialize()
+      console.log('✅ MCP client initialized')
+    }
+
+    isInitialized = true
+    console.log('✅ All clients initialized successfully')
+  } catch (error) {
+    console.error('❌ Failed to initialize clients:', error)
+    throw error
+  }
+}
+
+export async function POST(req: NextRequest) {
+  const { messages, session_id, selected_tools = [] } = await req.json()
+
+  // Debug logging only in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log("🔍 Debug Info:")
+    console.log("Session ID:", session_id)
+    console.log("Selected Tools:", selected_tools)
+    console.log("Total messages received:", messages.length)
+  }
 
   try {
     // Clean up messages - extract content from parts if needed
@@ -31,179 +78,328 @@ export async function POST(req: Request) {
       }
     })
 
-    console.log("🧹 Cleaned messages count:", cleanMessages.length)
-    console.log("🧹 Cleaned messages:", JSON.stringify(cleanMessages, null, 2))
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🧹 Cleaned messages count:", cleanMessages.length)
+    }
 
-    // Forward the FULL conversation history to your Python backend
-    const response = await fetch(`${backendUrl}/api/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: cleanMessages, // This should contain ALL messages, not just the latest
-        session_id,
-      }),
-    })
+    // Initialize Azure OpenAI and MCP clients
+    await initializeClients()
 
-    console.log("🌐 Backend Response Status:", response.status)
+    // Ensure clients are ready
+    if (!isInitialized || !azureOpenAIClient?.isReady() || !mcpClientManager.isReady()) {
+      throw new Error("Azure OpenAI or MCP client not ready")
+    }
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("❌ Backend Error Response:", errorText)
-      throw new Error(`Backend error: ${response.status} - ${response.statusText}`)
-    }    // Create a transform stream to convert SSE to AI SDK format with smooth word-by-word streaming
-    let streamFinished = false
-    let textBuffer = ""
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔧 Using direct Azure OpenAI with MCP integration")
+    }
+    return await handleDirectChat(cleanMessages, session_id, selected_tools)
     
-    const transformStream = new TransformStream({
-      transform(chunk, controller) {
-        if (streamFinished) return
+  } catch (error) {
+    console.error("💥 Chat API error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    return createErrorStream(`Error: ${errorMessage}`, 500)
+  }
+}
+
+/**
+ * Create error stream response
+ */
+function createErrorStream(message: string, status: number = 400): Response {
+  const errorStream = new ReadableStream({
+    start(controller) {
+      const encoder = new TextEncoder()
+      const errorChunk = `0:"❌ ${message}"\n`
+      controller.enqueue(encoder.encode(errorChunk))
+      controller.close()
+    },
+  })
+
+  return new Response(errorStream, {
+    status,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  })
+}
+
+/**
+ * Handle chat using direct Azure OpenAI and MCP integration
+ */
+async function handleDirectChat(messages: any[], sessionId: string, selectedTools: string[]) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log("🔧 Starting direct chat processing")
+    console.log(`🛠️ Selected tools: ${selectedTools.join(', ')}`)
+  }
+
+  // Get available MCP tools and filter by selection
+  const allTools = mcpClientManager.getAllTools()
+  const availableTools = selectedTools.length > 0 
+    ? allTools.filter(tool => selectedTools.includes(tool.name))
+    : allTools
+  
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🛠️ Available tools: ${availableTools.map(t => t.name).join(', ')}`)
+  }
+
+  // Convert MCP tools to LLM format
+  const llmTools = availableTools.map(tool => ({
+    name: tool.name,
+    description: tool.description || '',
+    parameters: {
+      type: 'object' as const,
+      properties: tool.inputSchema.properties || {},
+      required: tool.inputSchema.required || []
+    }
+  }))
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 LLM Tools being passed to Azure OpenAI:', JSON.stringify(llmTools, null, 2))
+
+    // Validate that ask_database tool has proper schema
+    const askDbTool = llmTools.find(t => t.name === 'ask_database');
+    if (askDbTool) {
+      console.log('🔍 ask_database tool validation:', {
+        hasQuestionProperty: askDbTool.parameters.properties.question !== undefined,
+        questionRequired: askDbTool.parameters.required.includes('question'),
+        questionType: askDbTool.parameters.properties.question?.type
+      });
+    }
+  }
+
+  // Create streaming response
+  const stream = new ReadableStream({
+    async start(controller) {
+      const encoder = new TextEncoder()
+      
+      // Streaming state and buffer management
+      let streamFinished = false
+      let textBuffer = ""
+      
+      // Helper functions for streaming
+      const enqueueContent = (content: string) => {
+        if (streamFinished) return false
         
-        const text = new TextDecoder().decode(chunk)
-        console.log("📥 Raw chunk:", text)
+        try {
+          // Add to buffer for smooth streaming
+          textBuffer += content
 
-        // Split by lines and process each SSE event
-        const lines = text.split("\n")
-
-        for (const line of lines) {
-          if (streamFinished) break
+          // Stream word by word for smoother experience
+          const words = textBuffer.split(/(\s+)/)
           
-          if (line.startsWith("data: ")) {
-            const jsonStr = line.slice(6).trim() // Remove 'data: ' prefix and trim
-
-            // Handle the [DONE] signal
-            if (jsonStr === "[DONE]") {
-              console.log("✅ Stream completed with [DONE] signal")
-              if (!streamFinished) {
-                streamFinished = true
-                // Send any remaining buffered text
-                if (textBuffer.trim()) {
-                  const remainingChunk = `0:${JSON.stringify(textBuffer)}\n`
-                  try {
-                    controller.enqueue(new TextEncoder().encode(remainingChunk))
-                  } catch (error) {
-                    console.warn("Controller already closed:", error)
-                  }
-                }
-                // Send proper finish message format for AI SDK
-                const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-                try {
-                  controller.enqueue(new TextEncoder().encode(finishChunk))
-                } catch (error) {
-                  console.warn("Controller already closed:", error)
-                }
-              }
-              return
+          // Keep the last incomplete word in buffer
+          if (words.length > 1) {
+            const wordsToSend = words.slice(0, -1).join('')
+            textBuffer = words[words.length - 1] || ''
+            
+            if (wordsToSend.length > 0) {
+              const safeContent = JSON.stringify(wordsToSend)
+              const chunk = `0:${safeContent}\n`
+              controller.enqueue(encoder.encode(chunk))
             }
+          }
+          return true
+        } catch (error) {
+          console.error('❌ Error enqueuing content:', error)
+          streamFinished = true
+          return false
+        }
+      }
 
-            try {
-              const data = JSON.parse(jsonStr)
+      const flushBuffer = () => {
+        if (textBuffer.trim() && !streamFinished) {
+          try {
+            const safeContent = JSON.stringify(textBuffer)
+            const chunk = `0:${safeContent}\n`
+            controller.enqueue(encoder.encode(chunk))
+            textBuffer = ""
+            return true
+          } catch (error) {
+            console.error('❌ Error flushing buffer:', error)
+            return false
+          }
+        }
+        return true
+      }
 
-              // Extract content from OpenAI format
-              if (data.choices && data.choices[0] && data.choices[0].delta && data.choices[0].delta.content) {
-                const content = data.choices[0].delta.content
-                console.log("📤 Extracted content:", content)
+      const enqueueError = (errorMessage: string) => {
+        try {
+          const safeError = JSON.stringify(`❌ ${errorMessage}`)
+          const chunk = `0:${safeError}\n`
+          controller.enqueue(encoder.encode(chunk))
+          return true
+        } catch (error) {
+          console.error('❌ Error enqueuing error:', error)
+          return false
+        }
+      }
 
-                // Add to buffer for smooth streaming
-                textBuffer += content
+      const finishStream = () => {
+        try {
+          // Flush any remaining buffer content before finishing
+          flushBuffer()
+          
+          const finishJson = JSON.stringify({
+            finishReason: 'stop',
+            usage: { promptTokens: 0, completionTokens: 0 }
+          })
+          const chunk = `e:${finishJson}\n`
+          controller.enqueue(encoder.encode(chunk))
+          controller.close()
+          return true
+        } catch (error) {
+          console.error('❌ Error finishing stream:', error)
+          try {
+            controller.close()
+          } catch (closeError) {
+            console.error('❌ Error closing stream:', closeError)
+          }
+          return false
+        }
+      }
+      
+      try {
+        // Get the latest user message for context-aware prompting
+        const latestUserMessage = messages
+          .filter((m: any) => m.role === 'user')
+          .pop()?.content || ''
 
-                // Stream word by word for smoother experience
-                const words = textBuffer.split(/(\s+)/)
-                
-                // Keep the last incomplete word in buffer
-                if (words.length > 1) {
-                  const wordsToSend = words.slice(0, -1).join('')
-                  textBuffer = words[words.length - 1] || ''
-                  
-                  if (wordsToSend.length > 0 && !streamFinished) {
-                    const aiSdkChunk = `0:${JSON.stringify(wordsToSend)}\n`
-                    try {
-                      controller.enqueue(new TextEncoder().encode(aiSdkChunk))
-                    } catch (error) {
-                      console.warn("Controller already closed while enqueueing content:", error)
-                      streamFinished = true
+        // Create LLM chat options
+        const llmOptions: LLMChatOptions = {
+          messages: [
+            // Add context-aware system message for better artifact generation
+            {
+              role: 'system',
+              content: CONTEXT_AWARE_SYSTEM_PROMPT(latestUserMessage)
+            },
+            ...messages.map(msg => ({
+              role: msg.role,
+              content: msg.content
+            }))
+          ],
+          tools: llmTools,
+          maxTokens: 2000,
+          temperature: 0.7,
+          stream: true
+        }
+
+        // Stream from Azure OpenAI
+        const llmStream = azureOpenAIClient!.createStreamingChatCompletion(llmOptions)
+        let accumulatedToolCalls: Array<{
+          id: string;
+          name: string;
+          arguments: Record<string, any>;
+        }> = []
+
+        for await (const chunk of llmStream) {
+          // Debug logging only in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log("📦 LLM chunk:", chunk)
+          }
+
+          // Handle content chunks
+          if (chunk.content) {
+            if (!enqueueContent(chunk.content)) {
+              console.error("❌ Failed to enqueue content chunk")
+              break
+            }
+          }
+
+          // Accumulate tool calls with basic validation
+          if (chunk.toolCalls) {
+            for (const toolCall of chunk.toolCalls) {
+              // Basic validation - ensure required fields exist
+              if (toolCall && typeof toolCall === 'object' && 
+                  toolCall.id && toolCall.name && toolCall.arguments) {
+                accumulatedToolCalls.push({
+                  id: toolCall.id,
+                  name: toolCall.name,
+                  arguments: toolCall.arguments
+                })
+                // Debug logging only in development mode
+                if (process.env.NODE_ENV === 'development') {
+                  console.log("🔧 Tool call added:", toolCall.name)
+                }
+              } else {
+                console.warn("⚠️ Invalid tool call data, skipping:", toolCall)
+              }
+            }
+          }
+
+          // Handle completion with tool execution
+          if (chunk.finishReason === 'tool_calls' && accumulatedToolCalls.length > 0) {
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🔧 Executing ${accumulatedToolCalls.length} tool calls...`)
+            }
+            
+            const toolResults = await Promise.all(
+              accumulatedToolCalls.map(toolCall =>
+                mcpClientManager.executeTool(toolCall.name, toolCall.arguments)
+              )
+            )
+
+            // Send tool results as content
+            for (const result of toolResults) {
+              if (result.content) {
+                for (const content of result.content) {
+                  if (content.type === 'text' && content.text) {
+                    if (!enqueueContent('\n\n' + content.text)) {
+                      console.error("❌ Failed to enqueue tool result")
+                      break
                     }
                   }
                 }
               }
-
-              // Handle finish reason (alternative completion signal)
-              if (data.choices && data.choices[0] && data.choices[0].finish_reason && !streamFinished) {
-                console.log("✅ Stream finished with reason:", data.choices[0].finish_reason)
-                streamFinished = true
-                // Send any remaining buffered text
-                if (textBuffer.trim()) {
-                  const remainingChunk = `0:${JSON.stringify(textBuffer)}\n`
-                  try {
-                    controller.enqueue(new TextEncoder().encode(remainingChunk))
-                  } catch (error) {
-                    console.warn("Controller already closed:", error)
-                  }
-                }
-                // Send proper finish message format for AI SDK
-                const finishChunk = `e:{"finishReason":"${data.choices[0].finish_reason}","usage":{"promptTokens":0,"completionTokens":0}}\n`
-                try {
-                  controller.enqueue(new TextEncoder().encode(finishChunk))
-                } catch (error) {
-                  console.warn("Controller already closed:", error)
-                }
-              }
-            } catch (parseError) {
-              console.error("❌ Failed to parse SSE data:", parseError, "Raw line:", line)
-              // Don't throw here, just continue processing other chunks
             }
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed: tool_calls")
+            }
+            finishStream()
+            return
+          }
+
+          // Handle other completion reasons
+          if (chunk.finishReason && chunk.finishReason !== 'stop') {
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed:", chunk.finishReason)
+            }
+            finishStream()
+            return
+          }
+
+          // Handle normal completion
+          if (chunk.finishReason === 'stop') {
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed: stop")
+            }
+            finishStream()
+            return
           }
         }
-      },
 
-      flush(controller) {
-        console.log("🏁 Stream transform completed")
-        // Send final finish message if not already sent
-        if (!streamFinished) {
-          const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-          try {
-            controller.enqueue(new TextEncoder().encode(finishChunk))
-          } catch (error) {
-            console.warn("Controller already closed in flush:", error)
-          }
+        // Fallback completion
+        if (process.env.NODE_ENV === 'development') {
+          console.log("🏁 Chat stream ended without explicit finish")
         }
-      },
-    })
+        finishStream()
 
-    // Pipe the response through our transform stream
-    const transformedStream = response.body?.pipeThrough(transformStream)
+      } catch (error) {
+        console.error("❌ Direct chat error:", error)
+        const errorMessage = error instanceof Error ? error.message : "Unknown error"
+        enqueueError(errorMessage)
+        finishStream()
+      }
+    }
+  })
 
-    return new Response(transformedStream, {
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-      },
-    })
-  } catch (error) {
-    console.error("💥 Chat API error:", error)
-
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
-
-    // Return error in AI SDK streaming format
-    const errorStream = new ReadableStream({
-      start(controller) {
-        const escapedError = errorMessage.replace(/\\/g, "\\\\").replace(/"/g, '\\"')
-        const chunk = `0:"❌ Error: ${escapedError}"\n`
-        controller.enqueue(new TextEncoder().encode(chunk))
-        // Send proper finish message
-        const finishChunk = `e:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n`
-        controller.enqueue(new TextEncoder().encode(finishChunk))
-        controller.close()
-      },
-    })
-
-    return new Response(errorStream, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/plain; charset=utf-8",
-      },
-    })
-  }
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    },
+  })
 }

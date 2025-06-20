@@ -16,8 +16,10 @@ import { PerformanceMonitor } from "@/components/performance-monitor"
 import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
 import { cn } from "@/lib/utils"
 import { useThrottledResize } from "@/hooks/use-resize-optimization"
+import { useMCP } from "@/components/mcp/mcp-provider"
 
-export default function ChatPage() {  const [sidebarOpen, setSidebarOpen] = useState(true)
+export default function ChatPage() {
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [sidebarWidth, setSidebarWidth] = useState(320)
   const [isResizingSidebar, setIsResizingSidebar] = useState(false)
   const [isResizingArtifact, setIsResizingArtifact] = useState(false)
@@ -28,12 +30,18 @@ export default function ChatPage() {  const [sidebarOpen, setSidebarOpen] = useS
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
 
+  // MCP hook for tool and resource management
+  const mcp = useMCP()
+
+
+
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
     id: currentSessionId,
     key: chatComponentKey.toString(),
     body: {
       session_id: currentSessionId,
+      selected_tools: mcp.selectedTools
     },
     initialMessages: [],
     // More aggressive throttling for better performance
@@ -287,7 +295,10 @@ export default function ChatPage() {  const [sidebarOpen, setSidebarOpen] = useS
               />
             </div>
             <div className="flex items-center gap-3 flex-shrink-0">
+              {/* User Menu */}
               <UserMenu currentSessionId={currentSessionId} />
+              
+              {/* Artifacts Toggle */}
               {allArtifacts.length > 0 && (
                 <Button
                   variant={artifactsOpen ? "secondary" : "ghost"}

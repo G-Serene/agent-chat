@@ -42,9 +42,14 @@ import {
   Database,
   MessageSquare,
   Shield,
+  Wrench,
 } from "lucide-react"
 import { toast } from "sonner"
 import { ChatStorage } from "@/lib/chat-storage"
+import { useMCP } from "@/components/mcp/mcp-provider"
+import { MCPStatus } from "@/components/mcp/mcp-status"
+import { MCPToolSelector } from "@/components/mcp/tool-selector"
+import { MCPResourceBrowser } from "@/components/mcp/resource-browser"
 
 interface SettingsDialogProps {
   onClearHistory: () => void
@@ -53,6 +58,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme()
+  const mcp = useMCP()
   const [open, setOpen] = useState(false)
   const [autoSave, setAutoSave] = useState(true)
   const [notifications, setNotifications] = useState(true)
@@ -242,6 +248,73 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
                   <p className="text-sm text-muted-foreground">Show system notifications</p>
                 </div>
                 <Switch id="notifications" checked={notifications} onCheckedChange={setNotifications} />
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* MCP Settings */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Wrench className="w-4 h-4 text-red-500" />
+              <h3 className="text-lg font-semibold">Model Context Protocol (MCP)</h3>
+            </div>
+
+            <div className="space-y-4 pl-6">
+              {/* MCP Connection Status */}
+              <div className="space-y-2">
+                <Label>Connection Status</Label>
+                <MCPStatus
+                  onRefresh={mcp.refreshConnections}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Tool Selection */}
+              <div className="space-y-2">
+                <Label>Available Tools</Label>
+                <p className="text-sm text-muted-foreground">
+                  Select which MCP tools to make available in your chat
+                </p>
+                <MCPToolSelector
+                  selectedTools={mcp.selectedTools}
+                  onSelectionChange={mcp.setSelectedTools}
+                >
+                  <Button variant="outline" size="sm" className="w-full justify-start">
+                    <Wrench className="h-4 w-4 mr-2" />
+                    Configure Tools ({mcp.selectedTools.length} selected)
+                  </Button>
+                </MCPToolSelector>
+              </div>
+
+              {/* Resource Selection */}
+              <div className="space-y-2">
+                <Label>Resource Browser</Label>
+                <p className="text-sm text-muted-foreground">
+                  Browse and select MCP resources to include in your chat context
+                </p>
+                <MCPResourceBrowser
+                  selectedResources={mcp.selectedResources}
+                  onSelectionChange={mcp.setSelectedResources}
+                >
+                  <Button variant="outline" size="sm" className="w-full justify-start">
+                    <Database className="h-4 w-4 mr-2" />
+                    Browse Resources ({mcp.selectedResources.length} selected)
+                  </Button>
+                </MCPResourceBrowser>
+              </div>
+
+              {/* MCP Stats */}
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="text-center p-3 bg-muted/50 rounded">
+                  <div className="text-lg font-semibold text-blue-600">{mcp.connectedCount}</div>
+                  <div className="text-xs text-muted-foreground">Connected Servers</div>
+                </div>
+                <div className="text-center p-3 bg-muted/50 rounded">
+                  <div className="text-lg font-semibold text-green-600">{mcp.tools.length}</div>
+                  <div className="text-xs text-muted-foreground">Available Tools</div>
+                </div>
               </div>
             </div>
           </div>
