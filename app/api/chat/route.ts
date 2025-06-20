@@ -7,7 +7,7 @@ import { NextRequest } from 'next/server'
 import { AzureOpenAIClient, LLMChatOptions } from '@/lib/llm/azure-openai-client'
 import { mcpClientManager } from '@/lib/mcp/client'
 import { loadAzureOpenAIConfig } from '@/lib/llm/azure-openai-config'
-import { ENHANCED_SYSTEM_PROMPT } from '@/lib/enhanced-system-prompt'
+import { CONTEXT_AWARE_SYSTEM_PROMPT } from '@/lib/system-prompt'
 
 // Global clients - initialized once
 let azureOpenAIClient: AzureOpenAIClient | null = null
@@ -248,13 +248,18 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
       }
       
       try {
+        // Get the latest user message for context-aware prompting
+        const latestUserMessage = messages
+          .filter((m: any) => m.role === 'user')
+          .pop()?.content || ''
+
         // Create LLM chat options
         const llmOptions: LLMChatOptions = {
           messages: [
-            // Add enhanced system message for better artifact generation
+            // Add context-aware system message for better artifact generation
             {
               role: 'system',
-              content: ENHANCED_SYSTEM_PROMPT
+              content: CONTEXT_AWARE_SYSTEM_PROMPT(latestUserMessage)
             },
             ...messages.map(msg => ({
               role: msg.role,

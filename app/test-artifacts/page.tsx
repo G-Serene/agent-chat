@@ -9,11 +9,7 @@ import { ArtifactDebugger } from "@/components/artifact-debugger"
 import { ChartRenderer } from "@/components/chart-renderer"
 import { TableRenderer } from "@/components/table-renderer"
 import { DebugPanel } from "@/components/debug-panel"
-import { ChartTest } from "@/components/chart-test"
-import { MinimalChartTest } from "@/components/minimal-chart-test"
-import { FixedSizeChartTest } from "@/components/fixed-size-chart-test"
-import { UserChartTest } from "@/components/user-chart-test"
-import { detectArtifacts } from "@/lib/enhanced-artifact-detector"
+import { detectArtifacts } from "@/lib/artifact-detector"
 import { BarChart3, Table, Code, TestTube } from "lucide-react"
 
 const testArtifacts = {
@@ -81,9 +77,7 @@ export default function ArtifactTestPage() {
 ${testArtifacts[type].content}
 \`\`\``
     
-    console.log(`🧪 Testing ${type} detection...`)
     const artifacts = detectArtifacts(testContent, `test-${type}-${Date.now()}`)
-    console.log(`✅ Detected ${artifacts.length} artifacts:`, artifacts)
     setDetectionResults(artifacts)
   }
 
@@ -162,35 +156,6 @@ ${testArtifacts[type].content}
           </Card>
         </TabsContent>        <TabsContent value="rendering" className="space-y-6">
           <div className="space-y-6">
-            {/* User's Chart Example */}
-            <UserChartTest />
-            
-            {/* Fixed Size Test */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-purple-500" />
-                  Fixed Size Chart Test
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <FixedSizeChartTest />
-              </CardContent>
-            </Card>
-            
-            {/* Minimal Test */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="w-5 h-5 text-green-500" />
-                  Minimal Chart Test
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <MinimalChartTest />
-              </CardContent>
-            </Card>
-            
             {/* Full Component Tests */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>

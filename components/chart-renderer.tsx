@@ -103,10 +103,8 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
         // Clean the JSON string first
         const cleanedJson = cleanJsonString(artifact.content)
-        console.log("🧹 Cleaned JSON:", cleanedJson)
 
         const parsed = JSON.parse(cleanedJson)
-        console.log("📊 Parsed chart data:", parsed)
         setChartData(parsed)
       } catch (error) {
         console.error("❌ Failed to parse chart JSON:", error)
@@ -181,16 +179,6 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
   const { chartType, data, config } = chartData
 
-  // Add comprehensive debug logging
-  console.log("🎯 Chart Renderer Debug:", {
-    chartType,
-    dataLength: data?.length,
-    dataSample: data?.[0],
-    config,
-    hasData: !!data,
-    hasChartType: !!chartType
-  })
-
   if (!chartType || !data) {
     return (
       <div className="p-4 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-sm rounded-lg border border-red-200 dark:border-red-800">
@@ -208,7 +196,6 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
   // Custom tooltip component for consistent styling
   const CustomTooltip = ({ active, payload, label }: any) => {
-    console.log("🔸 Tooltip data:", { active, payload, label })
     if (active && payload && payload.length) {
       return (
         <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
@@ -245,7 +232,6 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
 
     switch (chartType) {
       case "bar":
-        console.log("🔵 Rendering bar chart with data:", data, "config:", config)
         return (
           <BarChart data={data} {...commonProps}>
             {config?.grid && <CartesianGrid strokeDasharray="3 3" stroke={CHART_THEME.colors.grid} strokeWidth={1} />}
@@ -358,16 +344,8 @@ export function ChartRenderer({ artifact }: ChartRendererProps) {
         const pieDataKey = config?.series?.[0]?.dataKey || "value" || Object.keys(data[0] || {})[1] || "avg_temp"
         const pieNameKey = config?.series?.[0]?.nameKey || "name" || Object.keys(data[0] || {})[0] || "region"
         
-        // Debug logging for pie chart
-        console.log("🥧 Pie Chart Debug:")
-        console.log("pieDataKey:", pieDataKey)
-        console.log("pieNameKey:", pieNameKey)
-        console.log("data sample:", data[0])
-        console.log("config.series:", config?.series)
-        
         // Calculate total for percentage calculations
         const totalValue = data.reduce((sum: number, item: any) => sum + (item[pieDataKey] || 0), 0)
-        console.log("totalValue:", totalValue)
         
         return (
           <PieChart {...commonProps}>

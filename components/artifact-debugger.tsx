@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
-import { detectArtifacts } from "@/lib/enhanced-artifact-detector"
+import { detectArtifacts } from "@/lib/artifact-detector"
 import { Code, BarChart3, Table, GitBranch, FileText, RefreshCw } from "lucide-react"
 
 export function ArtifactDebugger() {
@@ -139,9 +139,7 @@ And here's the detailed breakdown:
   const processInput = () => {
     if (!input.trim()) return
     
-    console.log("🔍 Processing input for artifacts...")
     const detected = detectArtifacts(input, `debug-${Date.now()}`)
-    console.log("✅ Detected artifacts:", detected)
     
     setArtifacts(detected)
     setLastProcessed(input)
