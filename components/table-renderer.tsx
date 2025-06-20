@@ -176,7 +176,7 @@ export function TableRenderer({ artifact }: TableRendererProps) {
     return (
       <div className="w-full bg-white dark:bg-gray-900 p-8 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-3 text-gray-600 dark:text-gray-400">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-accent" />
           <span className="text-sm font-medium">Loading table data...</span>
         </div>
       </div>
@@ -284,9 +284,9 @@ export function TableRenderer({ artifact }: TableRendererProps) {
                         <div className="flex flex-col">
                           {sortColumn === column.key ? (
                             sortDirection === "asc" ? (
-                              <ArrowUp className="w-3 h-3 text-blue-500" />
+                              <ArrowUp className="w-3 h-3 text-accent" />
                             ) : sortDirection === "desc" ? (
-                              <ArrowDown className="w-3 h-3 text-blue-500" />
+                              <ArrowDown className="w-3 h-3 text-accent" />
                             ) : (
                               <ArrowUpDown className="w-3 h-3 text-gray-400" />
                             )
@@ -306,7 +306,7 @@ export function TableRenderer({ artifact }: TableRendererProps) {
                 <TableRow
                   key={index}
                   className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    selectedRows.has(index) ? "bg-blue-50 dark:bg-blue-950/20" : ""
+                    selectedRows.has(index) ? "bg-accent/10 dark:bg-accent/10" : ""
                   }`}
                 >
                   <TableCell>

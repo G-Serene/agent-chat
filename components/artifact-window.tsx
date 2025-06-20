@@ -245,7 +245,7 @@ export function ArtifactWindow({
       return <Table className="w-4 h-4 text-orange-500" />
     }
     if (type === "code" || type === "text") {
-      return <Code className="w-4 h-4 text-blue-500" />
+      return <Code className="w-4 h-4 text-accent" />
     }
     return <FileText className="w-4 h-4 text-gray-500" />
   }
@@ -278,16 +278,16 @@ export function ArtifactWindow({
           onMouseDown={handleMouseDown}
           className={cn(
             "absolute left-0 top-0 w-4 h-full cursor-col-resize bg-transparent transition-colors flex items-center justify-center group",
-            isResizing ? "bg-blue-500/20 z-50" : "hover:bg-blue-500/10 z-40"
+            isResizing ? "bg-accent/20 z-50" : "hover:bg-accent/10 z-40"
           )}
         >
           <div className={cn(
             "w-1 h-12 bg-border transition-colors rounded-full",
-            isResizing ? "bg-blue-500" : "group-hover:bg-blue-500"
+            isResizing ? "bg-accent" : "group-hover:bg-accent"
           )} />
           <GripVertical className={cn(
             "w-3 h-3 text-muted-foreground absolute transition-colors",
-            isResizing ? "text-blue-500" : "group-hover:text-blue-500"
+            isResizing ? "text-accent" : "group-hover:text-accent"
           )} />
         </div>
       )}
@@ -295,7 +295,7 @@ export function ArtifactWindow({
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-muted/30 flex-shrink-0">
         <div className="flex items-center gap-3">
-          <FileText className="w-5 h-5 text-blue-500" />
+          <FileText className="w-5 h-5 text-accent" />
           <h2 className="font-semibold text-lg">Artifacts</h2>
           <Badge variant="secondary" className="text-sm px-2 py-1">
             {currentArtifactIndex + 1} of {artifacts.length}
@@ -344,7 +344,7 @@ export function ArtifactWindow({
                 className={cn(
                   "w-2 h-2 rounded-full transition-colors",
                   index === currentArtifactIndex
-                    ? "bg-blue-500"
+                    ? "bg-accent"
                     : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
                 )}
               />
@@ -420,7 +420,7 @@ export function ArtifactWindow({
                   key={artifact.id}
                   className={cn(
                     "overflow-hidden border cursor-pointer transition-all hover:shadow-md",
-                    index === currentArtifactIndex ? "border-blue-500 shadow-md" : "border-border",
+                    index === currentArtifactIndex ? "border-accent shadow-md" : "border-border",
                   )}
                   onClick={() => {
                     setCurrentArtifactIndex(index)

@@ -48,14 +48,14 @@ const ToolInvocationRenderer = memo(({
 
   if (state === 'call') {
     return (
-      <Card className="mt-2 border border-blue-200 bg-blue-50">
+      <Card className="mt-2 border border-muted bg-muted/30">
         <CardContent className="p-3">
           <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-blue-600" />
+            <Wrench className="w-4 h-4 text-foreground" />
             <span className="text-sm font-medium">Executing {toolName}...</span>
           </div>
           {args && Object.keys(args).length > 0 && (
-            <pre className="mt-2 text-xs bg-blue-100 p-2 rounded overflow-x-auto">
+            <pre className="mt-2 text-xs bg-muted p-2 rounded overflow-x-auto">
               {JSON.stringify(args, null, 2)}
             </pre>
           )}
@@ -140,13 +140,13 @@ const ArtifactRenderer = memo(({
   };
 
   return (
-    <Card className="mt-3 border border-blue-200 bg-blue-50">
+    <Card className="mt-3 border border-accent/20 bg-accent/5">
       <CardContent className="p-4">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <IconComponent className="w-5 h-5 text-blue-600" />
+            <IconComponent className="w-5 h-5 text-accent" />
             <div>
-              <h4 className="text-sm font-medium text-blue-900">
+              <h4 className="text-sm font-medium text-foreground">
                 {artifact.title}
               </h4>
               <div className="flex items-center gap-2 mt-1">
@@ -181,13 +181,13 @@ const ArtifactRenderer = memo(({
         </div>
         
         {artifact.format === 'json' && artifact.type === 'chart' && (
-          <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
             Interactive chart ready to view
           </div>
         )}
         
         {artifact.format === 'markdown' && artifact.type === 'code' && (
-          <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
+          <div className="text-xs text-muted-foreground bg-muted p-2 rounded">
             Code ready for execution and editing
           </div>
         )}
@@ -197,13 +197,13 @@ const ArtifactRenderer = memo(({
 });
 
 const ReasoningRenderer = memo(({ reasoning }: { reasoning: string }) => (
-  <Card className="mt-2 border border-purple-200 bg-purple-50">
+  <Card className="mt-2 border border-secondary bg-secondary/50">
     <CardContent className="p-3">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-        <span className="text-sm font-medium text-purple-800">Reasoning</span>
+        <div className="w-2 h-2 rounded-full bg-accent"></div>
+        <span className="text-sm font-medium text-foreground">Reasoning</span>
       </div>
-      <div className="text-sm text-purple-700">
+      <div className="text-sm text-muted-foreground">
         <ReactMarkdown>{reasoning}</ReactMarkdown>
       </div>
     </CardContent>
@@ -266,8 +266,8 @@ export const MessageBubble = memo(function MessageBubble({
       <div className={cn(
         "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
         isUser 
-          ? "bg-blue-600 text-white" 
-          : "bg-gray-200 text-gray-600"
+          ? "bg-accent text-accent-foreground" 
+          : "bg-secondary text-secondary-foreground"
       )}>
         {isUser ? "U" : "AI"}
       </div>
@@ -280,8 +280,8 @@ export const MessageBubble = memo(function MessageBubble({
         <div className={cn(
           "rounded-lg px-4 py-3 max-w-none",
           isUser 
-            ? "bg-blue-600 text-white ml-auto max-w-[80%]" 
-            : "bg-gray-100 text-gray-900"
+            ? "bg-accent text-accent-foreground ml-auto max-w-[80%]" 
+            : "bg-secondary text-secondary-foreground"
         )}>
           {/* Render message parts */}
           <div className="space-y-2">
@@ -297,8 +297,8 @@ export const MessageBubble = memo(function MessageBubble({
           {/* Streaming indicator */}
           {isStreaming && isLastMessage && !isUser && (
             <div className="flex items-center gap-1 mt-2">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-gray-500">Thinking...</span>
+              <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
+              <span className="text-xs text-muted-foreground">Thinking...</span>
             </div>
           )}
         </div>
