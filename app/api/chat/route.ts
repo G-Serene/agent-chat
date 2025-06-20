@@ -49,10 +49,13 @@ async function initializeClients(): Promise<void> {
 export async function POST(req: NextRequest) {
   const { messages, session_id, selected_tools = [] } = await req.json()
 
-  console.log("🔍 Debug Info:")
-  console.log("Session ID:", session_id)
-  console.log("Selected Tools:", selected_tools)
-  console.log("Total messages received:", messages.length)
+  // Debug logging only in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log("🔍 Debug Info:")
+    console.log("Session ID:", session_id)
+    console.log("Selected Tools:", selected_tools)
+    console.log("Total messages received:", messages.length)
+  }
 
   try {
     // Clean up messages - extract content from parts if needed
@@ -75,7 +78,9 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    console.log("🧹 Cleaned messages count:", cleanMessages.length)
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🧹 Cleaned messages count:", cleanMessages.length)
+    }
 
     // Initialize Azure OpenAI and MCP clients
     await initializeClients()
@@ -85,7 +90,9 @@ export async function POST(req: NextRequest) {
       throw new Error("Azure OpenAI or MCP client not ready")
     }
 
-    console.log("🔧 Using direct Azure OpenAI with MCP integration")
+    if (process.env.NODE_ENV === 'development') {
+      console.log("🔧 Using direct Azure OpenAI with MCP integration")
+    }
     return await handleDirectChat(cleanMessages, session_id, selected_tools)
     
   } catch (error) {
@@ -122,8 +129,10 @@ function createErrorStream(message: string, status: number = 400): Response {
  * Handle chat using direct Azure OpenAI and MCP integration
  */
 async function handleDirectChat(messages: any[], sessionId: string, selectedTools: string[]) {
-  console.log("🔧 Starting direct chat processing")
-  console.log(`🛠️ Selected tools: ${selectedTools.join(', ')}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log("🔧 Starting direct chat processing")
+    console.log(`🛠️ Selected tools: ${selectedTools.join(', ')}`)
+  }
 
   // Get available MCP tools and filter by selection
   const allTools = mcpClientManager.getAllTools()
@@ -131,7 +140,9 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
     ? allTools.filter(tool => selectedTools.includes(tool.name))
     : allTools
   
-  console.log(`🛠️ Available tools: ${availableTools.map(t => t.name).join(', ')}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🛠️ Available tools: ${availableTools.map(t => t.name).join(', ')}`)
+  }
 
   // Convert MCP tools to LLM format
   const llmTools = availableTools.map(tool => ({
@@ -144,16 +155,18 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
     }
   }))
 
-  console.log('🔧 LLM Tools being passed to Azure OpenAI:', JSON.stringify(llmTools, null, 2))
+  if (process.env.NODE_ENV === 'development') {
+    console.log('🔧 LLM Tools being passed to Azure OpenAI:', JSON.stringify(llmTools, null, 2))
 
-  // Validate that ask_database tool has proper schema
-  const askDbTool = llmTools.find(t => t.name === 'ask_database');
-  if (askDbTool) {
-    console.log('🔍 ask_database tool validation:', {
-      hasQuestionProperty: askDbTool.parameters.properties.question !== undefined,
-      questionRequired: askDbTool.parameters.required.includes('question'),
-      questionType: askDbTool.parameters.properties.question?.type
-    });
+    // Validate that ask_database tool has proper schema
+    const askDbTool = llmTools.find(t => t.name === 'ask_database');
+    if (askDbTool) {
+      console.log('🔍 ask_database tool validation:', {
+        hasQuestionProperty: askDbTool.parameters.properties.question !== undefined,
+        questionRequired: askDbTool.parameters.required.includes('question'),
+        questionType: askDbTool.parameters.properties.question?.type
+      });
+    }
   }
 
   // Create streaming response
@@ -281,7 +294,10 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
         }> = []
 
         for await (const chunk of llmStream) {
-          console.log("📦 LLM chunk:", chunk)
+          // Debug logging only in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log("📦 LLM chunk:", chunk)
+          }
 
           // Handle content chunks
           if (chunk.content) {
@@ -302,7 +318,10 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
                   name: toolCall.name,
                   arguments: toolCall.arguments
                 })
-                console.log("🔧 Tool call added:", toolCall.name)
+                // Debug logging only in development mode
+                if (process.env.NODE_ENV === 'development') {
+                  console.log("🔧 Tool call added:", toolCall.name)
+                }
               } else {
                 console.warn("⚠️ Invalid tool call data, skipping:", toolCall)
               }
@@ -311,7 +330,9 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
 
           // Handle completion with tool execution
           if (chunk.finishReason === 'tool_calls' && accumulatedToolCalls.length > 0) {
-            console.log(`🔧 Executing ${accumulatedToolCalls.length} tool calls...`)
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`🔧 Executing ${accumulatedToolCalls.length} tool calls...`)
+            }
             
             const toolResults = await Promise.all(
               accumulatedToolCalls.map(toolCall =>
@@ -333,28 +354,36 @@ async function handleDirectChat(messages: any[], sessionId: string, selectedTool
               }
             }
 
-            console.log("🏁 Chat completed: tool_calls")
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed: tool_calls")
+            }
             finishStream()
             return
           }
 
           // Handle other completion reasons
           if (chunk.finishReason && chunk.finishReason !== 'stop') {
-            console.log("🏁 Chat completed:", chunk.finishReason)
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed:", chunk.finishReason)
+            }
             finishStream()
             return
           }
 
           // Handle normal completion
           if (chunk.finishReason === 'stop') {
-            console.log("🏁 Chat completed: stop")
+            if (process.env.NODE_ENV === 'development') {
+              console.log("🏁 Chat completed: stop")
+            }
             finishStream()
             return
           }
         }
 
         // Fallback completion
-        console.log("🏁 Chat stream ended without explicit finish")
+        if (process.env.NODE_ENV === 'development') {
+          console.log("🏁 Chat stream ended without explicit finish")
+        }
         finishStream()
 
       } catch (error) {

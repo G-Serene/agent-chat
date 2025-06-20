@@ -54,11 +54,6 @@ const quickPrompts = [
     prompt: "Create a flowchart showing the data processing workflow",
     icon: <GitBranch className="w-4 h-4 mr-2 text-red-500" />,
   },
-  {
-    title: "What can you do?",
-    prompt: "What are your capabilities and how can you help me?",
-    icon: <Sparkles className="w-4 h-4 mr-2 text-red-500" />,
-  },
 ]
 
 export function ChatInterface({

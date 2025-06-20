@@ -76,15 +76,18 @@ export const MessageBubble = memo(function MessageBubble({
   // Determine if this message should stream
   const shouldStream = !isUser && isStreaming && isLastMessage && messageContent.length > 0
 
-  console.log("Should stream?", { 
-    shouldStream, 
-    isUser, 
-    isStreaming, 
-    isLastMessage, 
-    messageId: message.id,
-    contentLength: displayContent.length,
-    rawContentLength: messageContent.length
-  })
+  // Debug logging only in development mode
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Should stream?", { 
+      shouldStream, 
+      isUser, 
+      isStreaming, 
+      isLastMessage, 
+      messageId: message.id,
+      contentLength: displayContent.length,
+      rawContentLength: messageContent.length
+    })
+  }
 
   const handleCopy = () => {
     navigator.clipboard
