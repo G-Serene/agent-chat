@@ -8,8 +8,6 @@ import { NextRequest } from 'next/server';
 import { StreamData, streamText } from 'ai';
 import { createAzure } from '@ai-sdk/azure';
 import { mcpClientManager } from '@/lib/mcp/client';
-import { ToolResponseProcessor } from '@/lib/tool-response-processor';
-import { StructuredMessage, MessagePart } from '@/lib/message-types';
 import { loadAzureOpenAIConfig } from '@/lib/llm/azure-openai-config';
 
 export async function POST(req: NextRequest) {
@@ -18,7 +16,7 @@ export async function POST(req: NextRequest) {
   
   try {
     const { messages, session_id, selected_tools }: {
-      messages: StructuredMessage[];
+      messages: any[];
       session_id: string;
       selected_tools: string[];
     } = await req.json();
@@ -54,13 +52,10 @@ export async function POST(req: NextRequest) {
       await mcpClientManager.initialize();
     }
 
-    // Convert structured messages to core messages format
+    // Convert messages to core format - they should already be in standard format
     const coreMessages = messages.map(msg => ({
       role: msg.role,
-      content: msg.parts
-        .filter(part => part.type === 'text')
-        .map(part => (part as any).text)
-        .join('\n')
+      content: msg.content || ''
     }));
 
     // Get available tools
@@ -98,56 +93,13 @@ export async function POST(req: NextRequest) {
               
               console.log(`✅ Tool ${tool.name} result:`, result);
               
-              // Process the tool result to determine if it's an artifact or text
-              let messageParts;
-              try {
-                messageParts = ToolResponseProcessor.processToolResult(
-                  `tool-${Date.now()}`,
-                  tool.name,
-                  result
-                );
-                console.log(`📦 Processed message parts for ${tool.name}:`, messageParts);
-              } catch (processingError) {
-                console.error(`Error in ToolResponseProcessor for ${tool.name}:`, processingError);
-                // Fallback to simple text processing
-                const textContent = result.content
-                  .filter(c => c.text) 
-                  .map(c => c.text)
-                  .join('\n');
-                return textContent || 'Tool execution completed';
-              }
-
-              // For now, return the first text content or the raw result
-              const textPart = messageParts.find(part => 
-                part.type === 'tool-invocation' && part.toolInvocation.result
-              );
-              
-              if (textPart && textPart.type === 'tool-invocation') {
-                console.log(`🎯 Returning text part result for ${tool.name}:`, textPart.toolInvocation.result);
-                return textPart.toolInvocation.result;
-              }
-              
-              // If it's an artifact, return structured data
-              const artifactPart = messageParts.find(part => part.type === 'artifact');
-              if (artifactPart && artifactPart.type === 'artifact') {
-                console.log(`🎨 Returning artifact result for ${tool.name}:`, artifactPart.artifact);
-                const structuredResult = {
-                  artifactType: 'structured_data',
-                  ...artifactPart.artifact
-                };
-                console.log(`🔍 Final structured result:`, structuredResult);
-                return structuredResult;
-              }
-              
-              // Fallback to raw content
+              // Simple: just extract and return the text content
               const textContent = result.content
-                .filter(c => c.text) // Filter out content without text
+                .filter(c => c.text && c.text.trim()) 
                 .map(c => c.text)
                 .join('\n');
                 
-              const finalResult = textContent || 'Tool execution completed but returned no text content';
-              console.log(`📝 Returning fallback text for ${tool.name}:`, finalResult);
-              return finalResult;
+              return textContent || 'Tool execution completed';
             } catch (error) {
               console.error(`Tool execution error for ${tool.name}:`, error);
               console.error(`Error stack:`, error instanceof Error ? error.stack : 'No stack');
