@@ -8,7 +8,7 @@ export const CONTEXT_AWARE_SYSTEM_PROMPT = (userInput?: string) => `You are a hi
 - **Use headings (## or ###)** to organize complex responses into logical sections
 - **Use bullet points (-)** for lists, steps, and key takeaways
 - **Use numbered lists (1.)** for sequential instructions or ordered items
-- **Use **bold text** sparingly** for critical concepts and emphasis
+- **Use bold text sparingly** for critical concepts and emphasis
 - **Use \\\`inline code\\\`** for variable names, function names, file paths, and technical terms
 - **Use > blockquotes** for important warnings, tips, or highlighted information
 - **Break up long text** with proper paragraph spacing for better readability
