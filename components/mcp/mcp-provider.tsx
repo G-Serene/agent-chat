@@ -5,7 +5,7 @@
 
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { MCPTool, MCPResource, MCPPrompt, MCPClientStatus } from '@/lib/mcp/types'
 
 interface MCPContextType {
@@ -57,7 +57,9 @@ export function MCPProvider({ children }: MCPProviderProps) {
   const [selectedResources, setSelectedResourcesState] = useState<string[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [lastStatusUpdate, setLastStatusUpdate] = useState<number>(0)
+  
+  // Use ref for lastStatusUpdate to avoid it being a dependency
+  const lastStatusUpdateRef = useRef<number>(0)
 
   // Load persisted selections from localStorage
   useEffect(() => {
@@ -96,7 +98,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
   const getStatus = useCallback(async () => {
     // Debounce rapid successive calls (minimum 1 second between calls)
     const now = Date.now();
-    if (now - lastStatusUpdate < 1000) {
+    if (now - lastStatusUpdateRef.current < 1000) {
       console.log('ℹ️ Debouncing MCP status check (too frequent)');
       return;
     }
@@ -123,7 +125,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
         setIsConnected(data.data.connected || false)
         setConnectedCount(data.data.connectedCount || 0)
         setError(null)
-        setLastStatusUpdate(now)
+        lastStatusUpdateRef.current = now
       } else {
         throw new Error(data.error || 'Failed to get MCP status')
       }
@@ -133,11 +135,11 @@ export function MCPProvider({ children }: MCPProviderProps) {
       setIsConnected(false)
       setConnectedCount(0)
     }
-  }, [lastStatusUpdate])
+  }, []) // Stable - no dependencies
 
   // Initialize MCP client
   const initialize = useCallback(async () => {
-    // Prevent multiple simultaneous initialization attempts
+    // Use a ref to check current loading state to avoid dependency on isLoading
     if (isLoading) {
       console.log('ℹ️ MCP initialization already in progress, skipping...');
       return;
@@ -190,11 +192,11 @@ export function MCPProvider({ children }: MCPProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [getStatus, isLoading, isInitialized])
+  }, [getStatus]) // Only depend on getStatus which is now stable
 
   // Refresh MCP connections
   const refreshConnections = useCallback(async () => {
-    // Prevent multiple simultaneous refresh attempts
+    // Check current loading state without dependency
     if (isLoading) {
       console.log('ℹ️ MCP operation already in progress, skipping refresh...');
       return;
@@ -232,7 +234,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
     } finally {
       setIsLoading(false)
     }
-  }, [getStatus, isLoading])
+  }, [getStatus]) // Only depend on getStatus which is now stable
 
   // Execute MCP tool
   const executeTool = useCallback(async (toolName: string, args: Record<string, any>) => {
@@ -340,8 +342,10 @@ export function MCPProvider({ children }: MCPProviderProps) {
       }
     };
 
-    // Start initialization immediately on mount
-    initializeMCP();
+    // Only run on mount, not when dependencies change
+    if (!isInitialized) {
+      initializeMCP();
+    }
 
     return () => {
       isComponentMounted = false;
@@ -350,7 +354,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
         clearTimeout(retryTimeout);
       }
     };
-  }, [initialize, getStatus, checkMCPServerHealth, isInitialized]) // Added dependencies
+  }, []) // Empty dependency array to run only on mount
 
   // Auto-select all tools when they become available
   useEffect(() => {
@@ -391,7 +395,7 @@ export function MCPProvider({ children }: MCPProviderProps) {
     return () => {
       clearInterval(reconnectInterval);
     };
-  }, [isInitialized, isConnected, isLoading, checkMCPServerHealth, refreshConnections])
+  }, [isInitialized, isConnected, isLoading, checkMCPServerHealth, refreshConnections]) // Add stable functions back
 
   const value: MCPContextType = {
     // State
