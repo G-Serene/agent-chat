@@ -5,9 +5,11 @@
  */
 
 import { NextRequest } from 'next/server';
-import { StreamData, streamText } from 'ai';
+import { StreamData, streamText, tool } from 'ai';
 import { createAzure } from '@ai-sdk/azure';
+import { z } from 'zod';
 import { mcpClientManager } from '@/lib/mcp/client';
+import { getContextAwarePrompt } from '@/lib/system-prompt';
 import { loadAzureOpenAIConfig } from '@/lib/llm/azure-openai-config';
 
 export async function POST(req: NextRequest) {
@@ -52,11 +54,23 @@ export async function POST(req: NextRequest) {
       await mcpClientManager.initialize();
     }
 
-    // Convert messages to core format - they should already be in standard format
+    // Convert messages to core format and add system prompt
     const coreMessages = messages.map(msg => ({
       role: msg.role,
       content: msg.content || ''
     }));
+
+    // Get the last user message to provide context for the system prompt
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content || '';
+    
+    // Add system prompt if there are no system messages yet
+    const hasSystemMessage = coreMessages.some(msg => msg.role === 'system');
+    if (!hasSystemMessage) {
+      coreMessages.unshift({
+        role: 'system',
+        content: getContextAwarePrompt(lastUserMessage)
+      });
+    }
 
     // Get available tools
     const allTools = mcpClientManager.getAllTools();
@@ -67,31 +81,73 @@ export async function POST(req: NextRequest) {
       ? allTools.filter(tool => selectedToolNames.includes(tool.name))
       : allTools;
 
-    // Convert MCP tools to AI SDK format with enhanced safety
-    const tools = availableTools.reduce((acc, tool) => {
+    // Convert MCP tools to AI SDK format using proper tool() function
+    const tools: Record<string, any> = {};
+    
+    for (const mcpTool of availableTools) {
       try {
-        console.log(`🔨 Converting tool: ${tool.name}`, tool);
+        console.log(`🔨 Converting tool: ${mcpTool.name}`, mcpTool);
         
-        acc[tool.name] = {
-          description: tool.description || '',
-          parameters: {
-            type: 'object' as const,
-            properties: tool.inputSchema?.properties || {},
-            required: tool.inputSchema?.required || []
-          },
+        // Convert MCP schema to Zod schema
+        const createZodSchema = (properties: any = {}, required: string[] = []) => {
+          const zodObject: Record<string, any> = {};
+          
+          for (const [key, prop] of Object.entries(properties)) {
+            const propDef = prop as any;
+            let zodType;
+            
+            switch (propDef.type) {
+              case 'string':
+                zodType = z.string();
+                break;
+              case 'number':
+                zodType = z.number();
+                break;
+              case 'boolean':
+                zodType = z.boolean();
+                break;
+              case 'array':
+                zodType = z.array(z.any());
+                break;
+              default:
+                zodType = z.any();
+            }
+            
+            if (propDef.description) {
+              zodType = zodType.describe(propDef.description);
+            }
+            
+            if (!required.includes(key)) {
+              zodType = zodType.optional();
+            }
+            
+            zodObject[key] = zodType;
+          }
+          
+          return Object.keys(zodObject).length > 0 ? z.object(zodObject) : z.object({});
+        };
+        
+        const schema = createZodSchema(
+          mcpTool.inputSchema?.properties || {}, 
+          mcpTool.inputSchema?.required || []
+        );
+        
+        tools[mcpTool.name] = tool({
+          description: mcpTool.description || `Execute ${mcpTool.name}`,
+          parameters: schema,
           execute: async (args: Record<string, any>) => {
             try {
-              console.log(`🔧 AI SDK calling tool: ${tool.name} with args:`, args);
+              console.log(`🔧 AI SDK calling tool: ${mcpTool.name} with args:`, args);
               
-              const result = await mcpClientManager.executeTool(tool.name, args);
+              const result = await mcpClientManager.executeTool(mcpTool.name, args);
               
               // Validate result structure
               if (!result || !Array.isArray(result.content)) {
-                console.warn(`Tool ${tool.name} returned invalid result structure:`, result);
+                console.warn(`Tool ${mcpTool.name} returned invalid result structure:`, result);
                 return 'Tool execution completed but returned invalid result structure';
               }
               
-              console.log(`✅ Tool ${tool.name} result:`, result);
+              console.log(`✅ Tool ${mcpTool.name} result:`, result);
               
               // Simple: just extract and return the text content
               const textContent = result.content
@@ -101,27 +157,34 @@ export async function POST(req: NextRequest) {
                 
               return textContent || 'Tool execution completed';
             } catch (error) {
-              console.error(`Tool execution error for ${tool.name}:`, error);
+              console.error(`Tool execution error for ${mcpTool.name}:`, error);
               console.error(`Error stack:`, error instanceof Error ? error.stack : 'No stack');
               throw new Error(`Tool execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
             }
           }
-        };
+        });
       } catch (toolConversionError) {
-        console.error(`Error converting tool ${tool.name}:`, toolConversionError);
+        console.error(`Error converting tool ${mcpTool.name}:`, toolConversionError);
       }
-      return acc;
-    }, {} as Record<string, any>);
+    }
 
     // Stream the text with tools
     try {
       console.log('🚀 Starting streamText with tools enabled...');
       console.log(`📋 Available tools: ${Object.keys(tools).join(', ')}`);
+      console.log(`🔍 Tool objects:`, Object.entries(tools).map(([name, tool]) => ({ name, hasExecute: typeof tool.execute === 'function' })));
+      
+      // Additional safety check for tools format
+      const validTools = Object.keys(tools).length > 0 ? tools : undefined;
+      
+      if (!validTools) {
+        console.log('⚠️ No valid tools available, proceeding without tools');
+      }
       
       const result = streamText({
         model: azure(azureConfig.deploymentName),
         messages: coreMessages,
-        tools: tools,
+        tools: validTools,
         onFinish: async ({ text, toolCalls, toolResults }: any) => {
           try {
             console.log('onFinish called with tools enabled');

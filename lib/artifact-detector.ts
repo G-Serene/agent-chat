@@ -89,7 +89,16 @@ export function detectArtifacts(content: string, messageId: string): ArtifactCon
 function detectArtifactType(content: string, language: string): ArtifactContent['type'] {
   const lowerContent = content.toLowerCase();
   
-  // Check for chart data patterns
+  // Explicit language-based detection
+  if (language === 'chart') {
+    return 'chart';
+  }
+  
+  if (language === 'table') {
+    return 'table';
+  }
+  
+  // Check for chart data patterns in JSON/JavaScript
   if (language === 'json' || language === 'javascript') {
     try {
       const parsed = JSON.parse(content);
