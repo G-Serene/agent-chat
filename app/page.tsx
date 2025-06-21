@@ -14,7 +14,7 @@ import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
 import { PerformanceMonitor } from "@/components/performance-monitor"
-import { ChatStorage, type ChatSessionSummary } from "@/lib/chat-storage"
+import { ChatStorage, type ChatSessionSummary, type TimelineGroup } from "@/lib/chat-storage"
 import { cn } from "@/lib/utils"
 import { useThrottledResize } from "@/hooks/use-resize-optimization"
 import { useMCP } from "@/components/mcp/mcp-provider"
@@ -27,7 +27,7 @@ export default function ChatPage() {
   const [artifactsOpen, setArtifactsOpen] = useState(false)
   const [artifactWindowWidth, setArtifactWindowWidth] = useState(400)
   const [selectedArtifactId, setSelectedArtifactId] = useState<string | undefined>(undefined)
-  const [chatSessions, setChatSessions] = useState<ChatSessionSummary[]>([])
+  const [timelineGroups, setTimelineGroups] = useState<TimelineGroup[]>([])
   const [currentSessionId, setCurrentSessionId] = useState<string>("")
   const [chatComponentKey, setChatComponentKey] = useState(0)
 
@@ -85,9 +85,10 @@ export default function ChatPage() {
   useEffect(() => {
     const savedSessionId = ChatStorage.getCurrentSessionId()
     const sessions = ChatStorage.getSessionSummaries()
+    const timelineGroups = ChatStorage.getSessionsByTimeline()
     const savedSidebarWidth = localStorage.getItem("agent-chat-sidebar-width")
 
-    setChatSessions(sessions)
+    setTimelineGroups(timelineGroups)
 
     if (savedSidebarWidth) {
       setSidebarWidth(Number.parseInt(savedSidebarWidth, 10))
@@ -122,7 +123,7 @@ export default function ChatPage() {
   useEffect(() => {
     if (currentSessionId && messages && messages.length > 0) {
       ChatStorage.saveSession(currentSessionId, messages)
-      setChatSessions(ChatStorage.getSessionSummaries())
+      setTimelineGroups(ChatStorage.getSessionsByTimeline())
     }
   }, [messages, currentSessionId])
 
@@ -166,6 +167,10 @@ export default function ChatPage() {
     (sessionId: string) => {
       if (sessionId !== currentSessionId) {
         console.log("🔄 Switching to session:", sessionId)
+        // Update the timestamp when switching to an existing session to indicate recent activity
+        ChatStorage.updateSessionTimestamp(sessionId)
+        // Update timeline groups to reflect the timestamp change
+        setTimelineGroups(ChatStorage.getSessionsByTimeline())
         resetChatStateAndSwitchSession(sessionId)
       }
     },
@@ -175,11 +180,13 @@ export default function ChatPage() {
   const handleSessionDelete = useCallback(
     (sessionId: string) => {
       ChatStorage.deleteSession(sessionId)
-      const updatedSessions = ChatStorage.getSessionSummaries()
-      setChatSessions(updatedSessions)
+      const updatedTimelineGroups = ChatStorage.getSessionsByTimeline()
+      setTimelineGroups(updatedTimelineGroups)
 
       if (sessionId === currentSessionId) {
-        const newSessionId = updatedSessions.length > 0 ? updatedSessions[0].id : ChatStorage.createNewSession()
+        // Find the first available session from timeline groups
+        const firstSession = updatedTimelineGroups.find(group => group.sessions.length > 0)?.sessions[0]
+        const newSessionId = firstSession ? firstSession.id : ChatStorage.createNewSession()
         resetChatStateAndSwitchSession(newSessionId)
       }
       toast.success("Chat session deleted.")
@@ -191,7 +198,7 @@ export default function ChatPage() {
     console.log("🧹 Clearing all chat history")
     localStorage.removeItem("agent-chat-sessions")
     localStorage.removeItem("agent-chat-current-session")
-    setChatSessions([])
+    setTimelineGroups([])
 
     const newSessionId = ChatStorage.createNewSession()
     resetChatStateAndSwitchSession(newSessionId)
@@ -222,7 +229,7 @@ export default function ChatPage() {
           >
             <Sidebar
               onNewChat={handleNewChat}
-              chatSessions={chatSessions}
+              timelineGroups={timelineGroups}
               currentSessionId={currentSessionId}
               onSessionSelect={handleSessionSelect}
               onSessionDelete={handleSessionDelete}
