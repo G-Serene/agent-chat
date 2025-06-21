@@ -113,16 +113,18 @@ export async function POST(req: NextRequest) {
       return acc;
     }, {} as Record<string, any>);
 
-    // Stream the text with tools (temporarily disable tools for debugging)
+    // Stream the text with tools
     try {
-      console.log('🚀 Starting streamText with tools disabled for debugging...');
+      console.log('🚀 Starting streamText with tools enabled...');
+      console.log(`📋 Available tools: ${Object.keys(tools).join(', ')}`);
       
       const result = streamText({
         model: azure(azureConfig.deploymentName),
         messages: coreMessages,
+        tools: tools,
         onFinish: async ({ text, toolCalls, toolResults }: any) => {
           try {
-            console.log('onFinish called - tools disabled mode');
+            console.log('onFinish called with tools enabled');
             console.log('onFinish parameters:', { 
               text: text?.length, 
               toolCalls: toolCalls?.length, 

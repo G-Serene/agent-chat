@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X, Code, FileText, BarChart3, Copy, Download, Check, Wrench } from "lucide-react"
+import { X, Code, FileText, BarChart3, Copy, Download, Check } from "lucide-react"
 import { AnimatePresence, motion } from "framer-motion"
 import { toast } from "sonner"
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter"
@@ -49,7 +49,6 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
     const codeBlocks: CodeBlock[] = []
     const diagrams: DiagramBlock[] = []
     const dataBlocks: DataBlock[] = []
-    const toolInvocations = messages.flatMap((message) => message.toolInvocations || [])
 
     messages.forEach((message, messageIndex) => {
       if (message.content && typeof message.content === "string") {
@@ -89,11 +88,11 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
       }
     })
 
-    return { codeBlocks, diagrams, dataBlocks, toolInvocations }
+    return { codeBlocks, diagrams, dataBlocks }
   }
 
-  const { codeBlocks, diagrams, dataBlocks, toolInvocations } = extractArtifacts()
-  const totalArtifacts = codeBlocks.length + diagrams.length + dataBlocks.length + toolInvocations.length
+  const { codeBlocks, diagrams, dataBlocks } = extractArtifacts()
+  const totalArtifacts = codeBlocks.length + diagrams.length + dataBlocks.length
 
   const handleCopy = (content: string, id: string) => {
     navigator.clipboard
@@ -164,10 +163,6 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                 <TabsTrigger value="data" className="flex items-center gap-1">
                   <FileText className="w-4 h-4" />
                   Data ({dataBlocks.length})
-                </TabsTrigger>
-                <TabsTrigger value="tools" className="flex items-center gap-1">
-                  <Wrench className="w-4 h-4" />
-                  Tools ({toolInvocations.length})
                 </TabsTrigger>
               </TabsList>
 
@@ -332,58 +327,6 @@ export function ArtifactsPanel({ messages, onClose }: ArtifactsPanelProps) {
                           >
                             {block.content}
                           </SyntaxHighlighter>
-                        </CardContent>
-                      </Card>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </TabsContent>
-
-              <TabsContent value="tools" className="space-y-4 mt-4">
-                <AnimatePresence>
-                  {toolInvocations.map((invocation, index) => (
-                    <motion.div
-                      key={invocation.toolCallId || index}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3, ease: "easeOut" }}
-                    >
-                      <Card className="bg-card shadow-lg border-slate-200 overflow-hidden">
-                        <CardHeader className="pb-3 bg-gradient-to-r from-slate-50 to-slate-100">
-                          <CardTitle className="text-base font-semibold flex items-center gap-2 text-slate-800">
-                            <Wrench className="w-5 h-5 text-orange-500" />
-                            Tool: {invocation.toolName}
-                          </CardTitle>
-                          <Badge
-                            variant={invocation.state === "result" ? "default" : "outline"}
-                            className={invocation.state === "result" ? "bg-green-500 text-white" : ""}
-                          >
-                            {invocation.state === "result" ? "Completed" : "Called"}
-                          </Badge>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm">
-                          {invocation.args && (
-                            <div>
-                              <h4 className="font-medium mb-2">Arguments:</h4>
-                              <pre className="text-xs bg-slate-50 p-3 rounded-md overflow-x-auto">
-                                <code>{JSON.stringify(invocation.args, null, 2)}</code>
-                              </pre>
-                            </div>
-                          )}
-                          {invocation.state === "result" && (invocation as any).result && (
-                            <div>
-                              <h4 className="font-medium mb-2">Result:</h4>
-                              <div className="p-3 bg-green-50 rounded-lg border border-green-200">
-                                <p className="text-sm text-green-700">
-                                  {typeof (invocation as any).result === "string"
-                                    ? (invocation as any).result
-                                    : JSON.stringify((invocation as any).result, null, 2)}
-                                </p>
-                              </div>
-                            </div>
-                          )}
                         </CardContent>
                       </Card>
                     </motion.div>
