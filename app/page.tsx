@@ -14,7 +14,7 @@ import { PanelLeftOpen, PanelLeftClose, LayoutGrid } from "lucide-react"
 import { toast } from "sonner"
 import { detectArtifacts, type ArtifactContent } from "@/lib/artifact-detector"
 import { PerformanceMonitor } from "@/components/performance-monitor"
-import { ChatStorage, type ChatSessionSummary, type TimelineGroup } from "@/lib/chat-storage"
+import { ChatStorage, type TimelineGroup } from "@/lib/chat-storage"
 import { cn } from "@/lib/utils"
 import { useThrottledResize } from "@/hooks/use-resize-optimization"
 import { useMCP } from "@/components/mcp/mcp-provider"
@@ -84,7 +84,6 @@ export default function ChatPage() {
   // Initialize session on mount
   useEffect(() => {
     const savedSessionId = ChatStorage.getCurrentSessionId()
-    const sessions = ChatStorage.getSessionSummaries()
     const timelineGroups = ChatStorage.getSessionsByTimeline()
     const savedSidebarWidth = localStorage.getItem("agent-chat-sidebar-width")
 
@@ -94,7 +93,9 @@ export default function ChatPage() {
       setSidebarWidth(Number.parseInt(savedSidebarWidth, 10))
     }
 
-    if (savedSessionId && sessions.find((s) => s.id === savedSessionId)) {
+    if (savedSessionId && timelineGroups.some(group => 
+      group.sessions.some(session => session.id === savedSessionId)
+    )) {
       setCurrentSessionId(savedSessionId)
     } else {
       const newSessionId = ChatStorage.createNewSession()
