@@ -163,13 +163,18 @@ export class ChatStorage {
     try {
       const sessions = this.getAllSessions()
       const existingIndex = sessions.findIndex((s) => s.id === sessionId)
+      
+      // Check if this is actually new content (more messages than before)
+      const previousMessageCount = existingIndex !== -1 ? sessions[existingIndex].messages.length : 0
+      const isNewContent = messages.length > previousMessageCount
 
       const sessionData: ChatSession = {
         id: sessionId,
         title: generateChatTitle(messages),
         messages,
         createdAt: existingIndex === -1 ? new Date().toISOString() : sessions[existingIndex].createdAt,
-        updatedAt: new Date().toISOString(), // Always update timestamp when saving
+        // Only update timestamp if there are actually new messages (not just loading existing ones)
+        updatedAt: isNewContent ? new Date().toISOString() : (existingIndex !== -1 ? sessions[existingIndex].updatedAt : new Date().toISOString()),
       }
 
       if (existingIndex === -1) {
@@ -181,22 +186,6 @@ export class ChatStorage {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
     } catch (error) {
       console.error("Failed to save chat session:", error)
-    }
-  }
-
-  static updateSessionTimestamp(sessionId: string): void {
-    if (typeof window === "undefined") return
-
-    try {
-      const sessions = this.getAllSessions()
-      const existingIndex = sessions.findIndex((s) => s.id === sessionId)
-
-      if (existingIndex !== -1) {
-        sessions[existingIndex].updatedAt = new Date().toISOString()
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions))
-      }
-    } catch (error) {
-      console.error("Failed to update session timestamp:", error)
     }
   }
 

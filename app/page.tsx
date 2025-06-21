@@ -167,10 +167,6 @@ export default function ChatPage() {
     (sessionId: string) => {
       if (sessionId !== currentSessionId) {
         console.log("🔄 Switching to session:", sessionId)
-        // Update the timestamp when switching to an existing session to indicate recent activity
-        ChatStorage.updateSessionTimestamp(sessionId)
-        // Update timeline groups to reflect the timestamp change
-        setTimelineGroups(ChatStorage.getSessionsByTimeline())
         resetChatStateAndSwitchSession(sessionId)
       }
     },
