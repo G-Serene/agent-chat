@@ -16,6 +16,14 @@ export interface ChatSessionSummary {
   messageCount: number
 }
 
+export interface TimelineGroup {
+  label: string
+  sessions: ChatSessionSummary[]
+  sortOrder: number
+}
+
+export type TimelineGrouping = "today" | "yesterday" | "this-week" | "last-week" | "this-month" | "last-month" | "older"
+
 const STORAGE_KEY = "agent-chat-sessions"
 const CURRENT_SESSION_KEY = "agent-chat-current-session"
 
@@ -52,6 +60,41 @@ function getLastMessagePreview(messages: Message[]): string {
   return preview.length < cleanContent.length ? preview + "..." : preview || "Empty message"
 }
 
+// Helper function to determine timeline group for a given date
+function getTimelineGroup(date: Date): { group: TimelineGrouping; label: string; sortOrder: number } {
+  const now = new Date()
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+  
+  const startOfWeek = new Date(today)
+  startOfWeek.setDate(today.getDate() - today.getDay())
+  
+  const startOfLastWeek = new Date(startOfWeek)
+  startOfLastWeek.setDate(startOfWeek.getDate() - 7)
+  
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  
+  const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  
+  if (messageDate >= today) {
+    return { group: "today", label: "Today", sortOrder: 0 }
+  } else if (messageDate >= yesterday) {
+    return { group: "yesterday", label: "Yesterday", sortOrder: 1 }
+  } else if (messageDate >= startOfWeek) {
+    return { group: "this-week", label: "This Week", sortOrder: 2 }
+  } else if (messageDate >= startOfLastWeek) {
+    return { group: "last-week", label: "Last Week", sortOrder: 3 }
+  } else if (messageDate >= startOfMonth) {
+    return { group: "this-month", label: "This Month", sortOrder: 4 }
+  } else if (messageDate >= startOfLastMonth) {
+    return { group: "last-month", label: "Last Month", sortOrder: 5 }
+  } else {
+    return { group: "older", label: "Older", sortOrder: 6 }
+  }
+}
+
 export class ChatStorage {
   static getAllSessions(): ChatSession[] {
     if (typeof window === "undefined") return []
@@ -78,6 +121,37 @@ export class ChatStorage {
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
   }
 
+  static getSessionsByTimeline(): TimelineGroup[] {
+    const sessions = this.getSessionSummaries()
+    const groupMap = new Map<TimelineGrouping, ChatSessionSummary[]>()
+    const groupLabels = new Map<TimelineGrouping, { label: string; sortOrder: number }>()
+
+    // Group sessions by timeline
+    sessions.forEach((session) => {
+      const date = new Date(session.timestamp)
+      const { group, label, sortOrder } = getTimelineGroup(date)
+      
+      if (!groupMap.has(group)) {
+        groupMap.set(group, [])
+        groupLabels.set(group, { label, sortOrder })
+      }
+      
+      groupMap.get(group)!.push(session)
+    })
+
+    // Convert to timeline groups and sort
+    const timelineGroups: TimelineGroup[] = Array.from(groupMap.entries()).map(([group, sessions]) => {
+      const { label, sortOrder } = groupLabels.get(group)!
+      return {
+        label,
+        sessions: sessions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+        sortOrder
+      }
+    })
+
+    return timelineGroups.sort((a, b) => a.sortOrder - b.sortOrder)
+  }
+
   static getSession(sessionId: string): ChatSession | null {
     const sessions = this.getAllSessions()
     return sessions.find((s) => s.id === sessionId) || null
@@ -89,13 +163,18 @@ export class ChatStorage {
     try {
       const sessions = this.getAllSessions()
       const existingIndex = sessions.findIndex((s) => s.id === sessionId)
+      
+      // Check if this is actually new content (more messages than before)
+      const previousMessageCount = existingIndex !== -1 ? sessions[existingIndex].messages.length : 0
+      const isNewContent = messages.length > previousMessageCount
 
       const sessionData: ChatSession = {
         id: sessionId,
         title: generateChatTitle(messages),
         messages,
         createdAt: existingIndex === -1 ? new Date().toISOString() : sessions[existingIndex].createdAt,
-        updatedAt: new Date().toISOString(),
+        // Only update timestamp if there are actually new messages (not just loading existing ones)
+        updatedAt: isNewContent ? new Date().toISOString() : (existingIndex !== -1 ? sessions[existingIndex].updatedAt : new Date().toISOString()),
       }
 
       if (existingIndex === -1) {

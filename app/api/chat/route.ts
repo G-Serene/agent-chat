@@ -5,7 +5,7 @@
  */
 
 import { NextRequest } from 'next/server';
-import { StreamData, streamText, tool } from 'ai';
+import { streamText, tool } from 'ai';
 import { createAzure } from '@ai-sdk/azure';
 import { z } from 'zod';
 import { mcpClientManager } from '@/lib/mcp/client';
@@ -13,15 +13,24 @@ import { getContextAwarePrompt } from '@/lib/system-prompt';
 import { loadAzureOpenAIConfig } from '@/lib/llm/azure-openai-config';
 
 export async function POST(req: NextRequest) {
-  // Create stream data for additional information - moved outside try/catch to ensure cleanup
-  const data = new StreamData();
-  
   try {
+    const requestBody = await req.json();
+    console.log('📥 Received request body:', requestBody);
+    
     const { messages, session_id, selected_tools }: {
       messages: any[];
-      session_id: string;
-      selected_tools: string[];
-    } = await req.json();
+      session_id?: string;
+      selected_tools?: string[];
+    } = requestBody;
+
+    // Validate required fields
+    if (!messages || !Array.isArray(messages)) {
+      console.error('❌ Invalid messages:', messages);
+      return new Response(JSON.stringify({ error: 'Messages array is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
 
     // Load Azure OpenAI configuration
     const azureConfig = loadAzureOpenAIConfig();
@@ -74,10 +83,10 @@ export async function POST(req: NextRequest) {
 
     // Get available tools
     const allTools = mcpClientManager.getAllTools();
-    const selectedToolNames = selected_tools.map(toolId => 
+    const selectedToolNames = (selected_tools || []).map(toolId => 
       toolId.includes('::') ? toolId.split('::', 2)[1] : toolId
     );
-    const availableTools = selected_tools.length > 0 
+    const availableTools = (selected_tools && selected_tools.length > 0)
       ? allTools.filter(tool => selectedToolNames.includes(tool.name))
       : allTools;
 
@@ -185,39 +194,32 @@ export async function POST(req: NextRequest) {
         model: azure(azureConfig.deploymentName),
         messages: coreMessages,
         tools: validTools,
-        onFinish: async ({ text, toolCalls, toolResults }: any) => {
-          try {
-            console.log('onFinish called with tools enabled');
-            console.log('onFinish parameters:', { 
-              text: text?.length, 
-              toolCalls: toolCalls?.length, 
-              toolResults: toolResults?.length 
-            });
-          } catch (error) {
-            console.error('Error in onFinish:', error);
-          } finally {
-            // Always close the stream data, even if there was an error
-            data.close();
-          }
+        maxSteps: 5, // Allow multiple steps for tool calling and follow-up
+        onStepFinish: async ({ text, toolCalls, toolResults, finishReason, isContinued }: any) => {
+          console.log('📝 Step finished:', { 
+            textLength: text?.length || 0, 
+            toolCallsCount: toolCalls?.length || 0, 
+            toolResultsCount: toolResults?.length || 0,
+            finishReason,
+            isContinued
+          });
+        },
+        onFinish: async ({ text, toolCalls, toolResults, finishReason }: any) => {
+          console.log('🏁 Stream finished:', { 
+            textLength: text?.length || 0, 
+            toolCallsCount: toolCalls?.length || 0, 
+            toolResultsCount: toolResults?.length || 0,
+            finishReason 
+          });
         },
         onError: (error) => {
           console.error('Stream error:', error);
-          data.append({
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Streaming error occurred'
-          });
-          data.close();
         }
       });
 
-      return result.toDataStreamResponse({ data });
+      return result.toDataStreamResponse();
     } catch (streamError) {
       console.error('StreamText creation error:', streamError);
-      data.append({
-        type: 'error',
-        error: `Stream creation failed: ${streamError instanceof Error ? streamError.message : 'Unknown error'}`
-      });
-      data.close();
       
       return new Response(JSON.stringify({ error: 'Stream creation failed' }), {
         status: 500,
@@ -231,14 +233,6 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Chat API error:', error);
     
-    // Append error and close the stream data
-    data.append({
-      type: 'error',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
-    data.close();
-    
-    // Return a proper streaming response even for errors
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { 

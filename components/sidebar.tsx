@@ -15,9 +15,15 @@ interface ChatSession {
   messageCount: number
 }
 
+interface TimelineGroup {
+  label: string
+  sessions: ChatSession[]
+  sortOrder: number
+}
+
 interface SidebarProps {
   onNewChat: () => void
-  chatSessions: ChatSession[]
+  timelineGroups: TimelineGroup[]
   currentSessionId: string
   onSessionSelect: (sessionId: string) => void
   onSessionDelete: (sessionId: string) => void
@@ -26,7 +32,7 @@ interface SidebarProps {
 
 export function Sidebar({
   onNewChat,
-  chatSessions,
+  timelineGroups,
   currentSessionId,
   onSessionSelect,
   onSessionDelete,
@@ -62,96 +68,111 @@ export function Sidebar({
 
       {/* Chat History */}
       <ScrollArea className="flex-1 p-3">
-        <div className="space-y-2">
-          {chatSessions.length === 0 ? (
+        <div className="space-y-4">
+          {timelineGroups.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No chat history yet</p>
               <p className="text-xs">Start a new conversation</p>
             </div>
           ) : (
-            chatSessions.map((session) => (              <div
-                key={session.id}
-                className={cn(
-                  "group relative rounded-lg transition-colors duration-150",
-                  session.id === currentSessionId ? "bg-red-50 dark:bg-red-900/20" : "hover:bg-muted/80",
-                )}
-              >
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start items-center gap-3 h-auto min-h-[3rem] p-3 pr-16 text-left rounded-lg transition-colors duration-150",
-                    session.id === currentSessionId
-                      ? "bg-red-50 text-red-900 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-100 dark:hover:bg-red-800/30"
-                      : "hover:bg-muted/80",
-                  )}
-                  onClick={() => onSessionSelect(session.id)}
-                >
-                  <Avatar className="w-8 h-8 flex-shrink-0">
-                    <AvatarFallback
-                      className={cn(session.id === currentSessionId ? "bg-red-100 dark:bg-red-800/40" : "bg-muted")}
-                    >
-                      <MessageSquare
-                        className={cn(
-                          "w-4 h-4",
-                          session.id === currentSessionId
-                            ? "text-red-600 dark:text-red-400"
-                            : "text-muted-foreground",
-                        )}
-                      />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 overflow-hidden min-w-0">
-                    <div
-                      className={cn(
-                        "font-semibold text-sm break-words overflow-wrap-anywhere word-break-break-word hyphens-auto line-clamp-2",
-                        session.id === currentSessionId ? "text-black dark:text-white" : "text-foreground",
-                      )}
-                      title={session.title}
-                    >
-                      {session.title}
-                    </div>
-                  </div>
-                </Button>
-
-                {/* Metadata positioned in top-right */}
-                <div className="absolute top-3 right-3 flex flex-col items-end gap-1 pointer-events-none">
-                  <div
-                    className={cn(
-                      "text-xs font-medium",
-                      session.id === currentSessionId
-                        ? "text-red-600 dark:text-red-400"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {formatTimestamp(session.timestamp)}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-xs px-2 py-0.5 rounded-full bg-muted min-w-[1.5rem] text-center font-medium",
-                      session.id === currentSessionId
-                        ? "bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200"
-                        : "text-muted-foreground",
-                    )}
-                  >
-                    {session.messageCount}
-                  </div>
+            timelineGroups.map((group) => (
+              <div key={group.label} className="space-y-2">
+                {/* Timeline Group Header */}
+                <div className="px-3 py-1">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    {group.label}
+                  </h3>
                 </div>
+                
+                {/* Sessions in this group */}
+                <div className="space-y-1">
+                  {group.sessions.map((session) => (
+                    <div
+                      key={session.id}
+                      className={cn(
+                        "group relative rounded-lg transition-colors duration-150",
+                        session.id === currentSessionId ? "bg-red-50 dark:bg-red-900/20" : "hover:bg-muted/80",
+                      )}
+                    >
+                      <Button
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start items-center gap-3 h-auto min-h-[3rem] p-3 pr-16 text-left rounded-lg transition-colors duration-150",
+                          session.id === currentSessionId
+                            ? "bg-red-50 text-red-900 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-100 dark:hover:bg-red-800/30"
+                            : "hover:bg-muted/80",
+                        )}
+                        onClick={() => onSessionSelect(session.id)}
+                      >
+                        <Avatar className="w-8 h-8 flex-shrink-0">
+                          <AvatarFallback
+                            className={cn(session.id === currentSessionId ? "bg-red-100 dark:bg-red-800/40" : "bg-muted")}
+                          >
+                            <MessageSquare
+                              className={cn(
+                                "w-4 h-4",
+                                session.id === currentSessionId
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-muted-foreground",
+                              )}
+                            />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 overflow-hidden min-w-0">
+                          <div
+                            className={cn(
+                              "font-semibold text-sm break-words overflow-wrap-anywhere word-break-break-word hyphens-auto line-clamp-2",
+                              session.id === currentSessionId ? "text-black dark:text-white" : "text-foreground",
+                            )}
+                            title={session.title}
+                          >
+                            {session.title}
+                          </div>
+                        </div>
+                      </Button>
 
-                {/* Delete button - only show on hover and not for current session */}
-                {session.id !== currentSessionId && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute bottom-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 pointer-events-auto"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSessionDelete(session.id)
-                    }}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                )}
+                      {/* Metadata positioned in top-right */}
+                      <div className="absolute top-3 right-3 flex flex-col items-end gap-1 pointer-events-none">
+                        <div
+                          className={cn(
+                            "text-xs font-medium",
+                            session.id === currentSessionId
+                              ? "text-red-600 dark:text-red-400"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {formatTimestamp(session.timestamp)}
+                        </div>
+                        <div
+                          className={cn(
+                            "text-xs px-2 py-0.5 rounded-full bg-muted min-w-[1.5rem] text-center font-medium",
+                            session.id === currentSessionId
+                              ? "bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200"
+                              : "text-muted-foreground",
+                          )}
+                        >
+                          {session.messageCount}
+                        </div>
+                      </div>
+
+                      {/* Delete button - only show on hover and not for current session */}
+                      {session.id !== currentSessionId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute bottom-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive hover:bg-destructive/10 pointer-events-auto"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onSessionDelete(session.id)
+                          }}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))
           )}
@@ -161,7 +182,10 @@ export function Sidebar({
       {/* Footer */}
       <div className="p-3 border-t mt-auto">
         <div className="space-y-1">
-          <SettingsDialog onClearHistory={onClearHistory} totalSessions={chatSessions.length} />
+          <SettingsDialog 
+            onClearHistory={onClearHistory} 
+            totalSessions={timelineGroups.reduce((total, group) => total + group.sessions.length, 0)} 
+          />
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg"
