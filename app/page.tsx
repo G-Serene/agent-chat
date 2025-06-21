@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback, startTransition } from "react"
 import { useChat } from "@ai-sdk/react"
 import type { Message } from "@ai-sdk/react"
+
 import { ChatInterface } from "@/components/chat-interface"
 import { Sidebar } from "@/components/sidebar"
 import { ArtifactWindow } from "@/components/artifact-window"
@@ -38,14 +39,11 @@ export default function ChatPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
     api: "/api/chat",
     id: currentSessionId,
-    key: chatComponentKey.toString(),
     body: {
       session_id: currentSessionId,
       selected_tools: mcp.selectedTools
     },
     initialMessages: [],
-    // More aggressive throttling for better performance
-    experimental_throttle: 100, // Increased from 50ms to 100ms for better UI responsiveness
     onError: (err) => {
       console.error("❌ Chat error:", err)
       toast.error("An error occurred", { description: err.message })
@@ -59,13 +57,29 @@ export default function ChatPage() {
           setSelectedArtifactId(artifacts[0].id)
           toast.success(`${artifacts.length} artifact${artifacts.length > 1 ? "s" : ""} generated`, {
             description: "Check the artifacts panel for details.",
-            icon: <LayoutGrid className="w-4 h-4 text-blue-500" />,
+            icon: <LayoutGrid className="w-4 h-4 text-accent" />,
           })
         }
       }
     },
     keepLastMessageOnError: true,
   })
+
+  // Extract artifacts from messages
+  const allArtifacts = useMemo(() => {
+    const artifacts: ArtifactContent[] = []
+    messages.forEach((message) => {
+      if (message.role === "assistant" && message.content) {
+        const isLastMessage = message === messages[messages.length - 1]
+        const isCurrentlyStreaming = isLastMessage && isLoading
+        if (!isCurrentlyStreaming) {
+          const messageArtifacts = detectArtifacts(message.content, message.id)
+          artifacts.push(...messageArtifacts)
+        }
+      }
+    })
+    return artifacts
+  }, [messages, isLoading])
 
   // Initialize session on mount
   useEffect(() => {
@@ -123,20 +137,6 @@ export default function ChatPage() {
     window.addEventListener("resize", updateDefaultWidth)
     return () => window.removeEventListener("resize", updateDefaultWidth)
   }, [])
-
-  const allArtifacts = useMemo(() => {
-    const artifacts: ArtifactContent[] = []
-    messages.forEach((message) => {
-      if (message.role === "assistant" && message.content) {
-        const isLastMessage = message === messages[messages.length - 1]
-        const isCurrentlyStreaming = isLastMessage && isLoading
-        if (!isCurrentlyStreaming) {
-          const messageArtifacts = detectArtifacts(message.content, message.id)
-          artifacts.push(...messageArtifacts)
-        }
-      }
-    })
-    return artifacts  }, [messages, isLoading])
 
   const handleArtifactToggle = (artifactId?: string) => {
     if (artifactId) {
@@ -208,7 +208,7 @@ export default function ChatPage() {
 
   return (
     <>
-      <div className="flex h-screen bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">        {sidebarOpen && (
+      <div className="flex h-screen bg-gradient-to-br from-muted via-background to-secondary dark:from-slate-900 dark:via-background dark:to-slate-950 relative overflow-hidden">        {sidebarOpen && (
           <div
             className={cn(
               "overflow-hidden border-r bg-background/80 backdrop-blur-md shadow-sm z-40 flex-shrink-0 relative",
@@ -231,7 +231,7 @@ export default function ChatPage() {
             <div
               className={cn(
                 "absolute top-0 right-0 w-1 h-full cursor-col-resize transition-colors duration-200 group",
-                isResizingSidebar ? "bg-blue-500/30" : "bg-border hover:bg-accent"
+                isResizingSidebar ? "bg-accent/30" : "bg-border hover:bg-accent"
               )}
               onMouseDown={(e) => {
                 e.preventDefault()
@@ -260,7 +260,7 @@ export default function ChatPage() {
             >
               <div className={cn(
                 "absolute inset-y-0 -right-1 w-3 transition-all duration-200",
-                isResizingSidebar ? "bg-blue-500/20" : "group-hover:bg-accent/20"
+                isResizingSidebar ? "bg-accent/20" : "group-hover:bg-accent/20"
               )} />
             </div>
           </div>
@@ -274,13 +274,13 @@ export default function ChatPage() {
             willChange: (isResizingSidebar || isResizingArtifact) ? 'width' : 'auto'
           }}
         >
-          <header className="flex items-center justify-between p-3 border-b bg-background/90 backdrop-blur-md shadow-sm z-30 border-blue-100 dark:border-blue-900/50">
+          <header className="flex items-center justify-between p-3 border-b bg-background/90 backdrop-blur-md shadow-sm z-30 border-border/50 dark:border-border/50">
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20 flex-shrink-0"
+                className="text-muted-foreground hover:text-primary hover:bg-accent/10 dark:hover:bg-accent/10 flex-shrink-0"
               >
                 {sidebarOpen ? <PanelLeftClose className="h-5 w-5" /> : <PanelLeftOpen className="h-5 w-5" />}
               </Button>
@@ -304,7 +304,7 @@ export default function ChatPage() {
                   variant={artifactsOpen ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => handleArtifactToggle()}
-                  className="relative text-muted-foreground hover:text-primary hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                  className="relative text-muted-foreground hover:text-primary hover:bg-accent/10 dark:hover:bg-accent/10"
                 >
                   <LayoutGrid className="h-4 w-4 text-accent mr-2" />
                   Artifacts ({allArtifacts.length})

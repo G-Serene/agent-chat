@@ -153,7 +153,7 @@ export function MCPStatus({ onRefresh, onToolSelect, className }: MCPStatusProps
                       {status.tools.length > 0 && (
                         <div>
                           <div className="flex items-center gap-1 mb-2">
-                            <Wrench className="h-3 w-3 text-blue-500" />
+                            <Wrench className="h-3 w-3 text-accent" />
                             <span className="text-xs font-medium">Tools</span>
                           </div>
                           <div className="space-y-1">

@@ -150,7 +150,7 @@ And here's the detailed breakdown:
       case "chart": return <BarChart3 className="w-4 h-4 text-teal-500" />
       case "table": return <Table className="w-4 h-4 text-orange-500" />
       case "diagram": return <GitBranch className="w-4 h-4 text-purple-500" />
-      case "code": return <Code className="w-4 h-4 text-blue-500" />
+      case "code": return <Code className="w-4 h-4 text-accent" />
       default: return <FileText className="w-4 h-4 text-gray-500" />
     }
   }

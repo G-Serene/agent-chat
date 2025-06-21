@@ -20,7 +20,7 @@ export default function AuthStatusPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent mx-auto mb-4"></div>
           <p>Loading authentication status...</p>
         </div>
       </div>
@@ -28,10 +28,10 @@ export default function AuthStatusPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-muted to-secondary dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="text-center py-8">
-          <Shield className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+          <Shield className="h-12 w-12 text-accent mx-auto mb-4" />
           <h1 className="text-3xl font-bold">Authentication Status</h1>
           <p className="text-muted-foreground mt-2">NextAuth.js + Azure Entra ID Integration</p>
         </div>

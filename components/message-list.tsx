@@ -1,6 +1,6 @@
 "use client"
 
-import type { Message } from "@ai-sdk/ui-utils"
+import { Message } from "@ai-sdk/react"
 import { MessageBubble } from "@/components/message-bubble"
 import { useEffect, useRef, useCallback, startTransition } from "react"
 import { AnimatePresence, motion } from "framer-motion"
@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface MessageListProps {
   messages: Message[]
-  onArtifactToggle: (artifactId?: string) => void
+  onArtifactToggle?: (artifactId?: string) => void
   isLoading: boolean
 }
 

@@ -51,7 +51,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-background to-indigo-50 dark:from-slate-900 dark:via-background dark:to-slate-950 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-muted via-background to-secondary dark:from-slate-900 dark:via-background dark:to-slate-950 p-4">
       <Card className="w-full max-w-md bg-background/80 backdrop-blur-md border shadow-lg">
         <CardHeader className="text-center space-y-2 pb-6">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 dark:bg-primary/20">

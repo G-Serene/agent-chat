@@ -317,7 +317,7 @@ export function SettingsDialog({ onClearHistory, totalSessions }: SettingsDialog
                 {/* MCP Stats */}
                 <div className="grid grid-cols-2 gap-4 pt-2">
                   <div className="text-center p-3 bg-muted/50 rounded">
-                    <div className="text-lg font-semibold text-blue-600">{mcp.connectedCount}</div>
+                    <div className="text-lg font-semibold text-accent">{mcp.connectedCount}</div>
                     <div className="text-xs text-muted-foreground">Connected Servers</div>
                   </div>
                   <div className="text-center p-3 bg-muted/50 rounded">

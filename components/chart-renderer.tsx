@@ -42,21 +42,21 @@ interface ChartRendererProps {
 
 // Enhanced color palette for more chart types
 const COLORS = [
-  "#dc2626", // Red
-  "#2563eb", // Blue  
-  "#16a34a", // Green
-  "#ea580c", // Orange
-  "#9333ea", // Purple
-  "#0891b2", // Cyan
-  "#c2410c", // Dark Orange
-  "#7c3aed", // Violet
-  "#059669", // Emerald
-  "#be123c", // Rose
-  "#4338ca", // Indigo
-  "#0d9488", // Teal
+  "#dc2626", // Red (primary accent)
   "#000000", // Black
   "#666666", // Dark Gray
   "#999999", // Mid Gray
+  "#cccccc", // Light Gray
+  "#dc2626", // Red (repeat for emphasis)
+  "#7f1d1d", // Dark Red
+  "#991b1b", // Darker Red
+  "#b91c1c", // Medium Dark Red
+  "#ef4444", // Lighter Red
+  "#f87171", // Light Red
+  "#fca5a5", // Very Light Red
+  "#374151", // Charcoal
+  "#4b5563", // Medium Gray
+  "#6b7280", // Gray
 ]
 
 // Minimalist chart theme
@@ -64,9 +64,9 @@ const CHART_THEME = {
   fontSize: 12,
   fontFamily: "Inter, Helvetica Neue, Helvetica, Arial, sans-serif",
   colors: {
-    text: "#1e3a8a", // Professional Navy
-    textLight: "#64748b", // Professional Gray
-    grid: "#e2e8f0", // Light Blue-Gray
+    text: "#000000", // Black text
+    textLight: "#666666", // Gray text
+    grid: "#e5e5e5", // Light gray grid
     background: "#ffffff", // Pure White
     accent: "#dc2626", // Accent Red
   },

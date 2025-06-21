@@ -33,6 +33,39 @@ export class MCPClientManager {
   private config: MCPConfig | null = null;
   private connectionRetries: Map<string, number> = new Map();
   private isInitialized = false;
+  private isShuttingDown = false;
+
+  constructor() {
+    // Set up graceful shutdown handlers
+    this.setupShutdownHandlers();
+  }
+
+  /**
+   * Set up graceful shutdown handlers to close streams properly
+   */
+  private setupShutdownHandlers() {
+    const shutdown = async (signal: string) => {
+      if (this.isShuttingDown) return;
+      this.isShuttingDown = true;
+      
+      console.log(`🔄 Received ${signal}, closing MCP connections...`);
+      try {
+        await this.disconnect();
+        console.log('✅ MCP connections closed successfully');
+      } catch (error) {
+        console.error('❌ Error during MCP shutdown:', error);
+      }
+    };
+
+    // Handle various shutdown signals
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('beforeExit', () => {
+      if (!this.isShuttingDown) {
+        shutdown('beforeExit');
+      }
+    });
+  }
 
   /**
    * Initialize MCP client manager
@@ -299,13 +332,24 @@ export class MCPClientManager {
 
   /**
    * Execute a tool call on the appropriate MCP server
+   * Now supports unique tool IDs in format "serverName::toolName"
    */
-  async executeTool(toolName: string, args: Record<string, any>): Promise<MCPToolResult> {
+  async executeTool(toolIdentifier: string, args: Record<string, any>): Promise<MCPToolResult> {
     try {
-      // Find server that has this tool
-      const serverName = this.findServerWithTool(toolName);
-      if (!serverName) {
-        throw new Error(`Tool not found: ${toolName}`);
+      let serverName: string;
+      let toolName: string;
+      
+      // Parse tool identifier - check if it's in new format (serverName::toolName) or old format (just toolName)
+      if (toolIdentifier.includes('::')) {
+        [serverName, toolName] = toolIdentifier.split('::', 2);
+      } else {
+        // Legacy format - find server that has this tool
+        const foundServer = this.findServerWithTool(toolIdentifier);
+        if (!foundServer) {
+          throw new Error(`Tool not found: ${toolIdentifier}`);
+        }
+        serverName = foundServer;
+        toolName = toolIdentifier;
       }
 
       const client = this.clients.get(serverName);
@@ -330,7 +374,7 @@ export class MCPClientManager {
       };
 
     } catch (error) {
-      console.error(`❌ Tool execution failed: ${toolName}`, error);
+      console.error(`❌ Tool execution failed: ${toolIdentifier}`, error);
       return {
         content: [{
           type: 'text',
@@ -542,6 +586,11 @@ export class MCPClientManager {
    * Disconnect from all servers
    */
   async disconnect(): Promise<void> {
+    if (this.isShuttingDown && this.clients.size === 0 && this.transports.size === 0) {
+      console.log('ℹ️ MCP connections already closed');
+      return;
+    }
+    
     console.log('🔌 Disconnecting from all MCP servers...');
     
     const disconnectPromises = Array.from(this.clients.entries()).map(

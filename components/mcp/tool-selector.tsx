@@ -27,7 +27,7 @@ import { MCPTool } from '@/lib/mcp/types'
 import { useMCP } from './mcp-provider'
 
 interface MCPToolSelectorProps {
-  selectedTools: string[]
+  selectedTools: string[] // Now stores unique tool IDs in format "serverName::toolName"
   onSelectionChange: (selectedTools: string[]) => void
   children?: React.ReactNode
   className?: string
@@ -35,6 +35,7 @@ interface MCPToolSelectorProps {
 
 interface ToolWithServer extends MCPTool {
   serverName: string
+  uniqueId: string // Add unique identifier
 }
 
 export function MCPToolSelector({
@@ -48,22 +49,35 @@ export function MCPToolSelector({
   const [searchQuery, setSearchQuery] = useState('')
   const [localSelection, setLocalSelection] = useState<string[]>(selectedTools)
 
-  // Create tool to server mapping from serverStatuses
-  const toolToServerMap = useMemo(() => {
-    const map: Record<string, string> = {}
+  // Create tool to server mapping from serverStatuses - no longer needed since we use uniqueId
+  // Keep this for potential future use but we'll use uniqueId for everything now
+  
+  // Group tools by server - need to match tools from availableTools with server status
+  const toolsWithServer: ToolWithServer[] = useMemo(() => {
+    const result: ToolWithServer[] = []
+    
+    // Iterate through each server's tools to maintain proper mapping
     Object.entries(serverStatuses).forEach(([serverName, status]) => {
-      status.tools.forEach(tool => {
-        map[tool.name] = serverName
+      status.tools.forEach(serverTool => {
+        // Find corresponding tool in availableTools (which comes from the flattened list)
+        const matchingTool = availableTools.find(t => 
+          t.name === serverTool.name && 
+          JSON.stringify(t.inputSchema) === JSON.stringify(serverTool.inputSchema)
+        )
+        
+        if (matchingTool) {
+          const uniqueId = `${serverName}::${serverTool.name}`
+          result.push({
+            ...matchingTool,
+            serverName,
+            uniqueId
+          })
+        }
       })
     })
-    return map
-  }, [serverStatuses])
-
-  // Group tools by server
-  const toolsWithServer: ToolWithServer[] = availableTools.map(tool => ({
-    ...tool,
-    serverName: toolToServerMap[tool.name] || 'unknown'
-  }))
+    
+    return result
+  }, [availableTools, serverStatuses])
 
   const filteredTools = toolsWithServer.filter(tool =>
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -83,17 +97,17 @@ export function MCPToolSelector({
     setLocalSelection(selectedTools)
   }, [selectedTools])
 
-  const handleToolToggle = (toolName: string) => {
-    const newSelection = localSelection.includes(toolName)
-      ? localSelection.filter(name => name !== toolName)
-      : [...localSelection, toolName]
+  const handleToolToggle = (toolUniqueId: string) => {
+    const newSelection = localSelection.includes(toolUniqueId)
+      ? localSelection.filter(id => id !== toolUniqueId)
+      : [...localSelection, toolUniqueId]
     
     setLocalSelection(newSelection)
   }
 
   const handleSelectAll = () => {
-    const allToolNames = filteredTools.map(tool => tool.name)
-    setLocalSelection(allToolNames)
+    const allToolIds = filteredTools.map(tool => tool.uniqueId)
+    setLocalSelection(allToolIds)
   }
 
   const handleSelectNone = () => {
@@ -165,7 +179,7 @@ export function MCPToolSelector({
               </Button>
             </div>
             <Badge variant="secondary">
-              {localSelection.length} of {availableTools.length} selected
+              {localSelection.length} of {toolsWithServer.length} selected
             </Badge>
           </div>
 
@@ -192,18 +206,18 @@ export function MCPToolSelector({
                       
                       <div className="space-y-2">
                         {tools.map((tool) => {
-                          const isSelected = localSelection.includes(tool.name)
+                          const isSelected = localSelection.includes(tool.uniqueId)
                           
                           return (
                             <div
-                              key={tool.name}
+                              key={tool.uniqueId}
                               className={cn(
                                 "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
                                 isSelected 
                                   ? "bg-primary/5 border-primary/20" 
                                   : "hover:bg-muted/50"
                               )}
-                              onClick={() => handleToolToggle(tool.name)}
+                              onClick={() => handleToolToggle(tool.uniqueId)}
                             >
                               <div className="flex items-center pt-0.5">
                                 {isSelected ? (

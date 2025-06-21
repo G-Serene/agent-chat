@@ -126,7 +126,7 @@ export function MCPResourceBrowser({
   const getResourceIcon = (resource: MCPResource) => {
     if (resource.mimeType) {
       if (resource.mimeType.startsWith('image/')) {
-        return <Image className="h-4 w-4 text-blue-500" />
+        return <Image className="h-4 w-4 text-accent" />
       }
       if (resource.mimeType.includes('json') || resource.mimeType.includes('application/')) {
         return <Database className="h-4 w-4 text-green-500" />

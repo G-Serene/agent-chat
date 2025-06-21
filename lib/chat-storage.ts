@@ -1,4 +1,4 @@
-import type { Message } from "@ai-sdk/ui-utils"
+import type { Message } from "@ai-sdk/react"
 
 export interface ChatSession {
   id: string
