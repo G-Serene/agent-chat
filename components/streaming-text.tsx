@@ -47,9 +47,9 @@ export function StreamingText({ content, isStreaming, className = "" }: Streamin
     },
     pre: () => null, // Skip pre tags to avoid code block rendering
     p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2 space-y-0" {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2 space-y-0" {...props} />,
-    li: ({ node, ...props }: any) => <li className="mb-0" {...props} />,
+    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2" {...props} />,
+    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2" {...props} />,
+    li: ({ node, ...props }: any) => <li className="mb-1" {...props} />,
     strong: ({ node, ...props }: any) => <strong className="font-semibold" {...props} />,
     em: ({ node, ...props }: any) => <em className="italic" {...props} />,
     h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mb-3" {...props} />,

@@ -101,17 +101,7 @@ const ToolInvocationRenderer = memo(({
           </div>
           <div className="mt-2 text-sm text-green-700">
             {typeof result === 'string' ? (
-              <div style={{ 
-                '--tw-prose-bullets': 'none',
-                '--tw-prose-counters': 'none'
-              } as React.CSSProperties}>
-                <ReactMarkdown components={{
-                  p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-                  ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-                  ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-                  li: ({ node, ...props }: any) => <li style={{ marginTop: 0, marginBottom: 0 }} {...props} />,
-                }}>{result}</ReactMarkdown>
-              </div>
+              <ReactMarkdown>{result}</ReactMarkdown>
             ) : (
               <pre className="text-xs bg-green-100 p-2 rounded overflow-x-auto">
                 {JSON.stringify(result, null, 2)}
@@ -206,33 +196,19 @@ const ArtifactRenderer = memo(({
   );
 });
 
-const ReasoningRenderer = memo(({ reasoning }: { reasoning: string }) => {
-  const markdownComponents = {
-    p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-    li: ({ node, ...props }: any) => <li style={{ marginTop: 0, marginBottom: 0 }} {...props} />,
-  };
-
-  return (
-    <Card className="mt-2 border border-secondary bg-secondary/50">
-      <CardContent className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-2 h-2 rounded-full bg-accent"></div>
-          <span className="text-sm font-medium text-foreground">Reasoning</span>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          <div style={{ 
-            '--tw-prose-bullets': 'none',
-            '--tw-prose-counters': 'none'
-          } as React.CSSProperties}>
-            <ReactMarkdown components={markdownComponents}>{reasoning}</ReactMarkdown>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-});
+const ReasoningRenderer = memo(({ reasoning }: { reasoning: string }) => (
+  <Card className="mt-2 border border-secondary bg-secondary/50">
+    <CardContent className="p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="w-2 h-2 rounded-full bg-accent"></div>
+        <span className="text-sm font-medium text-foreground">Reasoning</span>
+      </div>
+      <div className="text-sm text-muted-foreground">
+        <ReactMarkdown>{reasoning}</ReactMarkdown>
+      </div>
+    </CardContent>
+  </Card>
+));
 
 const MessagePartRenderer = memo(({ 
   part, 
@@ -241,29 +217,11 @@ const MessagePartRenderer = memo(({
   part: MessagePart;
   onArtifactToggle: (artifactId?: string) => void;
 }) => {
-  // Compact markdown components for better spacing with inline styles
-  const markdownComponents = {
-    p: ({ node, ...props }: any) => <p className="mb-2 last:mb-0" {...props} />,
-    ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-    ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-2" style={{ marginTop: 0, marginBottom: '0.5rem' }} {...props} />,
-    li: ({ node, ...props }: any) => <li style={{ marginTop: 0, marginBottom: 0 }} {...props} />,
-    strong: ({ node, ...props }: any) => <strong className="font-semibold" {...props} />,
-    em: ({ node, ...props }: any) => <em className="italic" {...props} />,
-    h1: ({ node, ...props }: any) => <h1 className="text-2xl font-bold mb-3" {...props} />,
-    h2: ({ node, ...props }: any) => <h2 className="text-xl font-bold mb-2" {...props} />,
-    h3: ({ node, ...props }: any) => <h3 className="text-lg font-bold mb-2" {...props} />,
-  };
-
   switch (part.type) {
     case 'text':
       return (
         <div className="prose prose-sm max-w-none">
-          <div style={{ 
-            '--tw-prose-bullets': 'none',
-            '--tw-prose-counters': 'none'
-          } as React.CSSProperties}>
-            <ReactMarkdown components={markdownComponents}>{part.text}</ReactMarkdown>
-          </div>
+          <ReactMarkdown>{part.text}</ReactMarkdown>
         </div>
       );
     
